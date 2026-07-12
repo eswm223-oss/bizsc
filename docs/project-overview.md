@@ -194,20 +194,18 @@ Docker Compose によって各コンテナを管理する。
 * GitHub Desktop インストール
 * Private Repository `bizsc` 作成
 * ローカルへクローン完了
-
+* README.md 作成完了
+* .gitignore 作成完了
+* .editorconfig 作成完了
 ---
 
 # 次回の作業
 
-1. backend / frontend ディレクトリ作成
-2. `.gitignore`
-3. `.editorconfig`
-4. `README.md`
-5. Dockerfile（backend）
-6. Dockerfile（frontend）
-7. `compose.yaml`
-8. FastAPI 初期構築
-9. React（Vite + TypeScript）初期構築
-10. PostgreSQL 接続
-11. Docker 起動確認
-12. 初回コミット
+1. backend Docker 環境構築
+   - Dockerfile
+   - requirements.txt
+   - FastAPI 初期構築
+2. frontend Docker 環境構築
+3. compose.yaml
+4. PostgreSQL 接続
+5. Docker 起動確認

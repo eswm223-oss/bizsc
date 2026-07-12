@@ -1,0 +1,33 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: bizsc-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: bizsc-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+
+  db:
+    image: postgres:17
+    container_name: bizsc-db
+    environment:
+      POSTGRES_DB: bizsc
+      POSTGRES_USER: bizsc
+      POSTGRES_PASSWORD: bizsc
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
