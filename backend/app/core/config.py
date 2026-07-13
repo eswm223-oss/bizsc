@@ -12,11 +12,18 @@ class Settings(BaseSettings):
     db_user: str
     db_password: str
 
+    @property
+    def database_url(self) -> str:
+        return (
+            f"postgresql+psycopg://"
+            f"{self.db_user}:{self.db_password}"
+            f"@{self.db_host}:{self.db_port}/{self.db_name}"
+        )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=False,
     )
-
 
 @lru_cache
 def get_settings() -> Settings:
