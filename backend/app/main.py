@@ -1,8 +1,12 @@
 from fastapi import FastAPI
 
-app = FastAPI()
+from app.core.config import settings
+
+app = FastAPI(title=settings.app_name)
 
 
 @app.get("/")
-def read_root():
-    return {"message": "Hello, BizSC!"}
+def root():
+    return {
+        "message": settings.app_name
+    }
