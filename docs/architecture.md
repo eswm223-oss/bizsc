@@ -145,15 +145,19 @@ Node.js の依存ライブラリはコンテナ側で保持する。
 
 ---
 
-# Backend設計（予定）
+# Backend設計（実装済み）
 
 ```text
 app/
 
 ├── api/
 ├── core/
+│   └── config.py
 ├── db/
+│   ├── base.py
+│   └── database.py
 ├── models/
+│   └── user.py
 ├── repositories/
 ├── schemas/
 ├── services/
@@ -161,6 +165,36 @@ app/
 ```
 
 レイヤードアーキテクチャを採用予定。
+
+---
+
+# Database設計
+
+SQLAlchemy 2.x を採用する。
+
+- DeclarativeBase
+- Mapped[]
+- mapped_column()
+
+Migrationは Alembic により管理する。
+
+データベース変更は必ず Migration を経由して反映する。
+
+DBアクセスは以下のレイヤーで管理する。
+
+FastAPI
+↓
+Router
+↓
+Service
+↓
+Repository
+↓
+SQLAlchemy
+↓
+PostgreSQL
+
+責務を分離し、各層が単一責任となる構成を採用する。
 
 ---
 

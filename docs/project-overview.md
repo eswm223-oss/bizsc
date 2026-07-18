@@ -51,56 +51,83 @@ BizSC は、FastAPI・React・PostgreSQL を利用した Web アプリケーシ�
 
 ---
 
+## Phase 1：バックエンド基盤
+
+### Settings
+
+* [x] Settings管理
+* [x] .env管理
+* [x] Pydantic Settings導入
+
+### Database
+
+* [x] PostgreSQL接続
+* [x] SQLAlchemy導入
+* [x] Engine作成
+* [x] SessionLocal作成
+* [x] DBセッション管理（get_db）
+
+### Migration
+
+* [x] Alembic導入
+* [x] Base作成
+* [x] 初回Migration生成
+* [x] Migration適用
+
+### Model
+
+* [x] Userモデル作成
+
+### 動作確認
+
+* [x] DB接続確認API
+* [x] usersテーブル作成確認
+* [x] alembic_version確認
+
+---
+
 # 現在の構成
 
 ```text
-backend
+Browser
     │
+    ▼
+React (Vite)
+    │
+HTTP
     ▼
 FastAPI
     │
-    ▼
-Docker Compose
-    ▲
+SQLAlchemy
     │
-React (Vite)
-    │
-frontend
-
-      │
-
 PostgreSQL
 ```
 
-現在は
+Docker Compose により
 
-* FastAPI
-* React
-* PostgreSQL
+* backend
+* frontend
+* db
 
-の3コンテナが Docker Compose により同時起動できる状態となっている。
+の3コンテナが同時起動する。
 
 ---
 
 # 次のマイルストーン
 
-## Phase 1：バックエンド基盤
+## Phase 2：ユーザー機能（CRUD）
 
-* PostgreSQL 接続
-* SQLAlchemy 導入
-* Alembic 導入
-* Settings 管理
-* 環境変数整理
-
----
-
-## Phase 2：API設計
-
-* Router
-* Schema
-* Service
-* Repository
-* Error Handler
+* User Schema 作成
+* User Repository 作成
+* User Service 作成
+* User Router 作成
+* ユーザー登録API
+* ユーザー一覧API
+* ユーザー詳細API
+* ユーザー更新API
+* ユーザー削除API
+* バリデーション
+* エラーハンドリング
 
 ---
 
@@ -110,6 +137,7 @@ PostgreSQL
 * API Client
 * 共通レイアウト
 * ページ構成
+* バックエンド連携
 
 ---
 
@@ -125,7 +153,7 @@ PostgreSQL
 # 開発ルール
 
 * Docker Compose を利用して開発する
-* 機能単位で Git Commit を行う
+* 小さな単位で Git Commit を行う
 * 区切りごとに GitHub へ Push する
 * 理由を理解しながら実装する
 * ドキュメントを継続的に更新する
@@ -134,6 +162,6 @@ PostgreSQL
 
 # 関連ドキュメント
 
-* architecture.md
 * README.md
+* architecture.md
 * decisions/
