@@ -1,13 +1,17 @@
-from fastapi import Depends, FastAPI
+from fastapi import (
+    Depends, 
+    FastAPI,
+    APIRouter,
+)
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-
 from app.core.config import settings
 from app.db.database import get_db
 
 from app.api.users import router as users_router
 
 from app.core.exception_handlers import register_exception_handlers
+
 
 app = FastAPI()
 register_exception_handlers(app)
