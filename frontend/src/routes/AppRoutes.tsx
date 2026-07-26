@@ -3,12 +3,16 @@
 //////////////////////////////////
 
 import { Route, Routes } from "react-router-dom";
+import MainLayout from "../layouts/MainLayout.tsx";
 import NotFoundPage from "../pages/NotFoundPage";
+import HomePage from "../pages/HomePage.tsx";
 
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<div>Home</div>} />
+      <Route element={<MainLayout />}>
+        <Route path="/" element={<HomePage />} />
+      </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
