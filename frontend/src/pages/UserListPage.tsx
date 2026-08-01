@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import { getUsers } from "../api/users";
 import type { User } from "../types/user";
 
+import Card from "../components/Card/Card";
+import Loading from "../components/Loading/Loading";
+import ErrorMessage from "../components/ErrorMessage/ErrorMessage";
+
+import "./UserListPage.css";
+
 function UserListPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,28 +29,42 @@ function UserListPage() {
   }, []);
 
   if (isLoading) {
-    return <p>Loading...</p>;
+    return <Loading />;
   }
 
   if (error) {
-    return <p>{error}</p>;
+    return <ErrorMessage message={error} />;
   }
 
   return (
-    <div>
-      <h1>Users</h1>
+    <div className="user-list-page">
+      <Card title="Users">
+        {users.length === 0 ? (
+          <p className="user-list-empty">ユーザーが登録されていません</p>
+        ) : (
+          <table className="user-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>メールアドレス</th>
+                <th>ステータス</th>
+              </tr>
+            </thead>
 
-      {users.length === 0 ? (
-        <p>ユーザーが登録されていません</p>
-      ) : (
-        <ul>
-          {users.map((user) => (
-            <li key={user.id}>
-              {user.email} / {user.is_active ? "Active" : "Inactive"}
-            </li>
-          ))}
-        </ul>
-      )}
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id}>
+                  <td>{user.id}</td>
+                  <td>{user.email}</td>
+                  <td className="user-status">
+                    {user.is_active ? "Active" : "Inactive"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
     </div>
   );
 }
