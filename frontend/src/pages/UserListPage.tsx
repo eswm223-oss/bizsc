@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getUsers } from "../api/users";
 import type { User } from "../types/user";
+import { Link } from "react-router-dom";
 
 import Card from "../components/Card/Card";
 import Loading from "../components/Loading/Loading";
@@ -48,6 +49,7 @@ function UserListPage() {
                 <th>ID</th>
                 <th>メールアドレス</th>
                 <th>ステータス</th>
+                <th>操作</th>
               </tr>
             </thead>
 
@@ -58,6 +60,9 @@ function UserListPage() {
                   <td>{user.email}</td>
                   <td className="user-status">
                     {user.is_active ? "Active" : "Inactive"}
+                  </td>
+                  <td>
+                    <Link to={`/users/${user.id}`}>詳細</Link>
                   </td>
                 </tr>
               ))}
