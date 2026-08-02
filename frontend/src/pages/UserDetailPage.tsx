@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import Card from "../components/Card/Card";
 import ErrorMessage from "../components/ErrorMessage/ErrorMessage";
 import Loading from "../components/Loading/Loading";
+import Button from "../components/Button/Button";
 
-import { getUser } from "../api/users";
+import { deleteUser, getUser } from "../api/users";
 import type { User } from "../types/user";
 
 function UserDetailPage() {
@@ -13,6 +14,9 @@ function UserDetailPage() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function featchUser() {
@@ -34,6 +38,7 @@ function UserDetailPage() {
       }
     }
 
+    //ユーザ情報取得
     featchUser();
   }, [userId]);
 
@@ -48,6 +53,34 @@ function UserDetailPage() {
   if (!user) {
     return <ErrorMessage message="ユーザー情報が見つかりません" />;
   }
+
+  async function handleDelete() {
+    if (!user) {
+      return;
+    }
+
+    const shouldDelete = window.confirm(
+      "このユーザーを削除してもよろしいですか？",
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+
+      await deleteUser(user.id);
+
+      navigate("/users");
+    } catch {
+      setError("ユーザーの削除に失敗しました。");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  //ユーザ情報削除
 
   return (
     <Card title="ユーザー詳細">
@@ -68,7 +101,13 @@ function UserDetailPage() {
         <dd>{user.updated_at}</dd>
       </dl>
 
-      <Link to="/users">ユーザー一覧へ戻る</Link>
+      <Link to={`/users/${user.id}/edit`}>編集</Link>
+
+      <Button type="button" onClick={handleDelete} disabled={isDeleting}>
+        {isDeleting ? "削除中..." : "削除"}
+      </Button>
+
+      <Link to="/users">一覧へ戻る</Link>
     </Card>
   );
 }

@@ -1,20 +1,43 @@
 import apiClient from "./client";
-import type { UserListResponse, User, UserCreate } from "../types/user";
+import type {
+  UserListResponse,
+  User,
+  UserCreate,
+  UserUpdate,
+} from "../types/user";
 
+//リスト
 export async function getUsers(): Promise<UserListResponse> {
   const response = await apiClient.get<UserListResponse>("/users");
 
   return response.data;
 }
 
+//取得
 export async function getUser(id: number): Promise<User> {
   const response = await apiClient.get<User>(`/users/${id}`);
 
   return response.data;
 }
 
+//作成
 export async function createUser(userCreate: UserCreate): Promise<User> {
   const response = await apiClient.post<User>("/users", userCreate);
 
   return response.data;
+}
+
+//更新
+export async function updateUser(
+  userId: number,
+  userUpdate: UserUpdate,
+): Promise<User> {
+  const response = await apiClient.patch<User>(`/users/${userId}`, userUpdate);
+
+  return response.data;
+}
+
+//削除
+export async function deleteUser(userId: number): Promise<void> {
+  await apiClient.delete(`/users/${userId}`);
 }

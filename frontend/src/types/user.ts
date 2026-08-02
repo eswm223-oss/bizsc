@@ -14,3 +14,10 @@ export type UserCreate = {
   email: string;
   password: string;
 };
+
+//PATCH は、ユーザーのすべての項目ではなく、変更したい項目だけ送信する
+export type UserUpdate = {
+  email: string;
+  password?: string;
+  is_active?: boolean;
+};

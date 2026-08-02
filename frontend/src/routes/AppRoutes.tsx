@@ -9,6 +9,7 @@ import HomePage from "../pages/HomePage.tsx";
 import UserListPage from "../pages/UserListPage.tsx";
 import UserDetailPage from "../pages/UserDetailPage.tsx";
 import UserCreatePage from "../pages/UserCreatePage.tsx";
+import UserEditPage from "../pages/UserEditPage";
 
 function AppRoutes() {
   return (
@@ -16,9 +17,11 @@ function AppRoutes() {
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/users" element={<UserListPage />} />
-        <Route path="/users/:userId" element={<UserDetailPage />} />
         <Route path="/users/new" element={<UserCreatePage />} />
+        <Route path="/users/:userId" element={<UserDetailPage />} />
+        <Route path="/users/:userId/edit" element={<UserEditPage />} />
       </Route>
+
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
