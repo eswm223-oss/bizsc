@@ -33,3 +33,9 @@
     color: #666;
     font-size: 0.95rem;
 }
+
+.user-list-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+}

@@ -8,4 +8,9 @@ export type User = {
 
 export type UserListResponse = {
   users: User[];
-}
+};
+
+export type UserCreate = {
+  email: string;
+  password: string;
+};

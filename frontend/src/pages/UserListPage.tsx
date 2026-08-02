@@ -40,6 +40,9 @@ function UserListPage() {
   return (
     <div className="user-list-page">
       <Card title="Users">
+        <div className="user-list-actions">
+          <Link to="/users/new">ユーザーを新規作成</Link>
+        </div>
         {users.length === 0 ? (
           <p className="user-list-empty">ユーザーが登録されていません</p>
         ) : (
