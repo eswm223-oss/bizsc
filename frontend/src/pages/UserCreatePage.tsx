@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { isAxiosError } from "axios";
 
 import { createUser } from "../api/users";
 import Button from "../components/Button/Button";
 import Card from "../components/Card/Card";
 import ErrorMessage from "../components/ErrorMessage/ErrorMessage";
 import Input from "../components/Input/Input";
+
+type ApiErrorResponse = {
+  detail?: string;
+};
 
 function UserCreatePage() {
   const nabigate = useNavigate();
@@ -49,8 +54,23 @@ function UserCreatePage() {
       });
 
       nabigate("/users");
-    } catch {
-      setSubmitError("ユーザーの作成に失敗しました");
+    } catch (error: unknown) {
+      if (isAxiosError<ApiErrorResponse>(error)) {
+        if (error.response?.status === 409) {
+          setEmailError(
+            error.response.data.detail ??
+              "このメールアドレスはすでに登録されています",
+          );
+        } else if (error.response?.status === 422) {
+          setSubmitError("入力内容を確認してください");
+        } else {
+          setSubmitError(
+            error.response?.data.detail ?? "ユーザーの作成に失敗しました",
+          );
+        }
+      } else {
+        setSubmitError("予期しないエラーが発生しました");
+      }
     } finally {
       setIsSubmitting(false);
     }
