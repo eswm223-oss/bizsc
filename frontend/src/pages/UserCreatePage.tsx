@@ -3,10 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
 
 import { createUser } from "../api/users";
-import Button from "../components/Button/Button";
 import Card from "../components/Card/Card";
 import ErrorMessage from "../components/ErrorMessage/ErrorMessage";
-import Input from "../components/Input/Input";
+import UserForm from "../components/UserForm/UserForm";
 
 type ApiErrorResponse = {
   detail?: string;
@@ -80,35 +79,20 @@ function UserCreatePage() {
     <Card title="ユーザ新規登録">
       {submitError && <ErrorMessage message={submitError} />}
 
-      <form onSubmit={handleSubmit}>
-        <Input
-          id="email"
-          type="email"
-          label="メールアドレス"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          error={emailError}
-          autoComplete="email"
-          disabled={isSubmitting}
-        />
+      <UserForm
+        email={email}
+        onEmailChange={setEmail}
+        emailError={emailError}
+        password={password}
+        onPasswordChange={setPassword}
+        passwordError={passwordError}
+        isSubmitting={isSubmitting}
+        submitLabel="作成"
+        submittingLabel="作成中..."
+        onSubmit={handleSubmit}
+      />
 
-        <Input
-          id="password"
-          type="password"
-          label="パスワード"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          error={passwordError}
-          autoComplete="new-password"
-          disabled={isSubmitting}
-        />
-
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "作成中..." : "作成"}
-        </Button>
-
-        <Link to="/users">キャンセル</Link>
-      </form>
+      <Link to="/users">キャンセル</Link>
     </Card>
   );
 }

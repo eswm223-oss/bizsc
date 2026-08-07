@@ -3,12 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AxiosError } from "axios";
 
 import { getUser, updateUser } from "../api/users";
-import Button from "../components/Button/Button";
 import Card from "../components/Card/Card";
 import ErrorMessage from "../components/ErrorMessage/ErrorMessage";
-import Input from "../components/Input/Input";
 import Loading from "../components/Loading/Loading";
 import type { User } from "../types/user";
+import UserForm from "../components/UserForm/UserForm";
 
 function UserEditPage() {
   const { userId } = useParams();
@@ -104,30 +103,17 @@ function UserEditPage() {
     <Card>
       <h1>ユーザー編集</h1>
 
-      <form onSubmit={handleSubmit}>
-        <Input
-          label="メールアドレス"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          error={emailError}
-        />
-
-        <label>
-          <input
-            type="checkbox"
-            checked={isActive}
-            onChange={(event) => setIsActive(event.target.checked)}
-          />
-          有効
-        </label>
-
-        {submitError && <ErrorMessage message={submitError} />}
-
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "更新中..." : "更新"}
-        </Button>
-      </form>
+      <UserForm
+        email={email}
+        onEmailChange={setEmail}
+        emailError={emailError}
+        isActive={isActive}
+        onIsActiveChange={setIsActive}
+        isSubmitting={isSubmitting}
+        submitLabel="更新"
+        submittingLabel="更新中..."
+        onSubmit={handleSubmit}
+      />
     </Card>
   );
 }
