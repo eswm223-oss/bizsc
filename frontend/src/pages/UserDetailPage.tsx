@@ -11,6 +11,10 @@ import { deleteUser, getUser } from "../api/users";
 import type { User } from "../types/user";
 import "./UserDetailPage.css";
 
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString("ja-JP");
+}
+
 function UserDetailPage() {
   const { userId } = useParams();
   const [user, setUser] = useState<User | null>(null);
@@ -101,10 +105,10 @@ function UserDetailPage() {
         </dd>
 
         <dt>作成日時</dt>
-        <dd>{user.created_at}</dd>
+        <dd>{formatDateTime(user.created_at)}</dd>
 
         <dt>更新日時</dt>
-        <dd>{user.updated_at}</dd>
+        <dd>{formatDateTime(user.updated_at)}</dd>
       </dl>
 
       <div className="user-detail-actions">
