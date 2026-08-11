@@ -2,6 +2,7 @@ import type { SubmitEvent } from "react";
 
 import Button from "../Button/Button";
 import Input from "../Input/Input";
+import "./UserForm.css";
 
 type UserFormProps = {
   email: string;
@@ -73,10 +74,11 @@ function UserForm({
           有効
         </label>
       )}
-
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? submittingLabel : submitLabel}
-      </Button>
+      <div className="user-form__actions">
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? submittingLabel : submitLabel}
+        </Button>
+      </div>
     </form>
   );
 }
