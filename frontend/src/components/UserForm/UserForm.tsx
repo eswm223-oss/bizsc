@@ -38,7 +38,7 @@ function UserForm({
   onSubmit,
 }: UserFormProps) {
   return (
-    <form onSubmit={onSubmit}>
+    <form className="user-form" onSubmit={onSubmit}>
       <Input
         id="email"
         type="email"

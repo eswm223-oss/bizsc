@@ -40,7 +40,7 @@ function UserListPage() {
 
   return (
     <div className="user-list-page">
-      <Card title="Users">
+      <Card title="ユーザー一覧">
         <div className="user-list-actions">
           <Link to="/users/new">ユーザーを新規作成</Link>
         </div>
@@ -62,7 +62,7 @@ function UserListPage() {
                 <tr key={user.id}>
                   <td>{user.id}</td>
                   <td>{user.email}</td>
-                  <td className="user-status">
+                  <td>
                     <Badge variant={user.is_active ? "success" : "neutral"}>
                       {user.is_active ? "有効" : "無効"}
                     </Badge>

@@ -23,10 +23,6 @@
     background-color: #fafafa;
 }
 
-.user-status {
-    font-weight: 600;
-}
-
 .user-list-empty {
     padding: 32px;
     text-align: center;

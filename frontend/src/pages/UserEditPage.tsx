@@ -100,9 +100,7 @@ function UserEditPage() {
   }
 
   return (
-    <Card>
-      <h1>ユーザー編集</h1>
-
+    <Card title="ユーザー編集">
       <UserForm
         email={email}
         onEmailChange={setEmail}
