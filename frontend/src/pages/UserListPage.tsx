@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import Card from "../components/Card/Card";
 import Loading from "../components/Loading/Loading";
 import ErrorMessage from "../components/ErrorMessage/ErrorMessage";
+import Badge from "../components/Badge/Badge";
 
 import "./UserListPage.css";
 
@@ -62,7 +63,9 @@ function UserListPage() {
                   <td>{user.id}</td>
                   <td>{user.email}</td>
                   <td className="user-status">
-                    {user.is_active ? "Active" : "Inactive"}
+                    <Badge variant={user.is_active ? "success" : "neutral"}>
+                      {user.is_active ? "有効" : "無効"}
+                    </Badge>
                   </td>
                   <td>
                     <Link to={`/users/${user.id}`}>詳細</Link>

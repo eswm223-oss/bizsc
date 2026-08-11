@@ -5,8 +5,9 @@ import Card from "../components/Card/Card";
 import ErrorMessage from "../components/ErrorMessage/ErrorMessage";
 import Loading from "../components/Loading/Loading";
 import Button from "../components/Button/Button";
-
+import Badge from "../components/Badge/Badge";
 import { deleteUser, getUser } from "../api/users";
+
 import type { User } from "../types/user";
 
 function UserDetailPage() {
@@ -92,7 +93,11 @@ function UserDetailPage() {
         <dd>{user.email}</dd>
 
         <dt>ステータス</dt>
-        <dd>{user.is_active ? "Active" : "Inactive"}</dd>
+        <dd>
+          <Badge variant={user.is_active ? "success" : "neutral"}>
+            {user.is_active ? "有効" : "無効"}
+          </Badge>
+        </dd>
 
         <dt>作成日時</dt>
         <dd>{user.created_at}</dd>
