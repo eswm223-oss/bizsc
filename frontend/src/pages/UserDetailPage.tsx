@@ -9,6 +9,7 @@ import Badge from "../components/Badge/Badge";
 import { deleteUser, getUser } from "../api/users";
 
 import type { User } from "../types/user";
+import "./UserDetailPage.css";
 
 function UserDetailPage() {
   const { userId } = useParams();
@@ -85,7 +86,7 @@ function UserDetailPage() {
 
   return (
     <Card title="ユーザー詳細">
-      <dl>
+      <dl className="user-detail">
         <dt>ID</dt>
         <dd>{user.id}</dd>
 
@@ -106,13 +107,22 @@ function UserDetailPage() {
         <dd>{user.updated_at}</dd>
       </dl>
 
-      <Link to={`/users/${user.id}/edit`}>編集</Link>
+      <div className="user-detail-actions">
+        <Link to="/users">一覧へ戻る</Link>
 
-      <Button type="button" onClick={handleDelete} disabled={isDeleting}>
-        {isDeleting ? "削除中..." : "削除"}
-      </Button>
+        <div className="user-detail-actions__right">
+          <Link to={`/users/${user.id}/edit`}>編集</Link>
 
-      <Link to="/users">一覧へ戻る</Link>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? "削除中..." : "削除"}
+          </Button>
+        </div>
+      </div>
     </Card>
   );
 }
