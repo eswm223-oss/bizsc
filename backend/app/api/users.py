@@ -39,9 +39,10 @@ def create_user(
     response_model=UserListResponse,
 )
 def get_users(
+    search: str | None = None,
     db: Session = Depends(get_db),
 ) -> UserListResponse:
-    users = user_service.get_users(db)
+    users = user_service.get_users(db, search)
 
     return UserListResponse(
         users=[
@@ -50,7 +51,6 @@ def get_users(
         ],
         total=len(users),
     )
-
 
 @router.get(
     "/{user_id}",

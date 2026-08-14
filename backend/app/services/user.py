@@ -53,7 +53,11 @@ class UserService:
     def get_users(
         self,
         db: Session,
+        search: str | None = None,
     ) -> list[User]:
+        if search:
+            return self.repository.search_by_email(db, search)
+        
         return self.repository.get_all(db)
     
     def update_user(

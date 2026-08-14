@@ -6,28 +6,37 @@ import type {
   UserUpdate,
 } from "../types/user";
 
-//リスト
-export async function getUsers(): Promise<UserListResponse> {
-  const response = await apiClient.get<UserListResponse>("/users");
+//***************************** */
+//取得
+//***************************** */
+export async function getUsers(search?: string): Promise<UserListResponse> {
+  const response = await apiClient.get<UserListResponse>("/users", {
+    params: {
+      search,
+    },
+  });
 
   return response.data;
 }
 
-//取得
 export async function getUser(id: number): Promise<User> {
   const response = await apiClient.get<User>(`/users/${id}`);
 
   return response.data;
 }
 
+//***************************** */
 //作成
+//***************************** */
 export async function createUser(userCreate: UserCreate): Promise<User> {
   const response = await apiClient.post<User>("/users", userCreate);
 
   return response.data;
 }
 
+//***************************** */
 //更新
+//***************************** */
 export async function updateUser(
   userId: number,
   userUpdate: UserUpdate,
@@ -37,7 +46,9 @@ export async function updateUser(
   return response.data;
 }
 
+//***************************** */
 //削除
+//***************************** */
 export async function deleteUser(userId: number): Promise<void> {
   await apiClient.delete(`/users/${userId}`);
 }
