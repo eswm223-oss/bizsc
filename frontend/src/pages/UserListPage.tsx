@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, SubmitEvent } from "react";
 import { getUsers } from "../api/users";
 import type { User } from "../types/user";
 import { Link } from "react-router-dom";
@@ -14,22 +14,37 @@ function UserListPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  //*************************************** */
+  //preparation
+  //*************************************** */
+  async function fetchUsers(searchValue?: string) {
+    try {
+      const response = await getUsers(searchValue);
+      setUsers(response.users);
+    } catch {
+      setError("ユーザー一覧の取得に失敗しました");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchUsers() {
-      try {
-        const response = await getUsers();
-        setUsers(response.users);
-      } catch {
-        setError("ユーザー一覧の取得に失敗しました");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
     fetchUsers();
   }, []);
 
+  //*************************************** */
+  //screen process
+  //*************************************** */
+  function handleSearch(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    fetchUsers(search);
+  }
+
+  //*************************************** */
+  //return process
+  //*************************************** */
   if (isLoading) {
     return <Loading />;
   }
@@ -41,6 +56,15 @@ function UserListPage() {
   return (
     <div className="user-list-page">
       <Card title="ユーザー一覧">
+        <form onSubmit={handleSearch} className="user-search-form">
+          <input
+            type="text"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="メールアドレスで検索"
+          />
+          <button type="submit">検索</button>
+        </form>
         <div className="user-list-actions">
           <Link to="/users/new">ユーザーを新規作成</Link>
         </div>
