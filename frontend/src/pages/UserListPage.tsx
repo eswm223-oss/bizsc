@@ -1,4 +1,4 @@
-import { useEffect, useState, SubmitEvent } from "react";
+import { useEffect, useState } from "react";
 import { getUsers } from "../api/users";
 import type { User } from "../types/user";
 import { Link } from "react-router-dom";
@@ -17,10 +17,18 @@ function UserListPage() {
   const [search, setSearch] = useState("");
 
   //*************************************** */
-  //preparation
+  //screen処理
   //*************************************** */
+  function handleSearch(event: React.SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    fetchUsers(search);
+  }
+
   async function fetchUsers(searchValue?: string) {
     try {
+      setIsLoading(true);
+      setError(null);
+
       const response = await getUsers(searchValue);
       setUsers(response.users);
     } catch {
@@ -30,20 +38,39 @@ function UserListPage() {
     }
   }
 
+  //*************************************** */
+  //preparation
+  //*************************************** */
   useEffect(() => {
-    fetchUsers();
+    let ignore = false;
+
+    async function loadUsers() {
+      try {
+        const response = await getUsers();
+
+        if (!ignore) {
+          setUsers(response.users);
+        }
+      } catch {
+        if (!ignore) {
+          setError("ユーザー一覧の取得に失敗しました");
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadUsers();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   //*************************************** */
-  //screen process
-  //*************************************** */
-  function handleSearch(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    fetchUsers(search);
-  }
-
-  //*************************************** */
-  //return process
+  //return処理
   //*************************************** */
   if (isLoading) {
     return <Loading />;
