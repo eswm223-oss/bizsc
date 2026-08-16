@@ -55,8 +55,16 @@ class UserService:
         db: Session,
         search: str | None = None,
         is_active: bool | None = None,
+        sort_by: str = "id",
+        sort_order: str = "asc"
     ) -> list[User]:
-        return self.repository.get_all(db, search=search, is_active=is_active)
+        return self.repository.get_all(
+            db, 
+            search=search, 
+            is_active=is_active,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
     
     def update_user(
         self,

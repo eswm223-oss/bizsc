@@ -16,6 +16,8 @@ function UserListPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("");
+  const [sortBy, setSortBy] = useState("id");
+  const [sortOrder, setSortOrder] = useState("asc");
 
   //*************************************** */
   //screen処理
@@ -24,15 +26,25 @@ function UserListPage() {
     event.preventDefault();
 
     const isActive = activeFilter === "" ? undefined : activeFilter === "true";
-    fetchUsers(search, isActive);
+    fetchUsers(search, isActive, sortBy, sortOrder);
   }
 
-  async function fetchUsers(searchValue?: string, isActiveValue?: boolean) {
+  async function fetchUsers(
+    searchValue?: string,
+    isActiveValue?: boolean,
+    sortByValue?: string,
+    sortOrderValue?: string,
+  ) {
     try {
       setIsLoading(true);
       setError(null);
 
-      const response = await getUsers(searchValue, isActiveValue);
+      const response = await getUsers(
+        searchValue,
+        isActiveValue,
+        sortByValue,
+        sortOrderValue,
+      );
       setUsers(response.users);
     } catch {
       setError("ユーザー一覧の取得に失敗しました");
@@ -101,6 +113,24 @@ function UserListPage() {
             <option value="">全て</option>
             <option value="true">有効</option>
             <option value="false">無効</option>
+          </select>
+
+          <select
+            value={sortBy}
+            onChange={(event) => setSortBy(event.target.value)}
+          >
+            <option value="id">ID</option>
+            <option value="email">メールアドレス</option>
+            <option value="created_at">作成日時</option>
+            <option value="updated_at">更新日時</option>
+          </select>
+
+          <select
+            value={sortOrder}
+            onChange={(event) => setSortOrder(event.target.value)}
+          >
+            <option value="asc">昇順</option>
+            <option value="desc">降順</option>
           </select>
 
           <button type="submit">検索</button>

@@ -25,10 +25,24 @@ class UserRepository:
     def get_all(
         self,
         db: Session,
-        search: str,
-        is_active: bool | None = None
+        search: str | None = None,
+        is_active: bool | None = None,
+        sort_by: str = "id",
+        sort_order: str ="asc",
     ) -> list[User]:
         statement = select(User)
+
+        sort_columns = {
+            "id": User.id,
+            "email": User.email,
+            "created_at": User.created_at,
+            "updated_at": User.updated_at
+        }
+        sort_column = sort_columns.get(sort_by, User.id)
+        if sort_order == "desc":
+            statement = statement.order_by(sort_column.desc())
+        else:
+            statement = statement.order_by(sort_column.asc())
 
         if search:
             statement = statement.where(
@@ -39,8 +53,6 @@ class UserRepository:
             statement = statement.where(
                 User.is_active == is_active
             )
-
-        statement = statement.order_by(User.id)
 
         return list(db.scalars(statement).all())
 

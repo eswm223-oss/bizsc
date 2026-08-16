@@ -12,11 +12,15 @@ import type {
 export async function getUsers(
   search?: string,
   isActive?: boolean,
+  sortBy?: string,
+  sortOrder?: string,
 ): Promise<UserListResponse> {
   const response = await apiClient.get<UserListResponse>("/users", {
     params: {
       search,
       is_active: isActive,
+      sort_by: sortBy,
+      sort_order: sortOrder,
     },
   });
 
