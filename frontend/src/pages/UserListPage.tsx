@@ -15,21 +15,24 @@ function UserListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState("");
 
   //*************************************** */
   //screen処理
   //*************************************** */
   function handleSearch(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    fetchUsers(search);
+
+    const isActive = activeFilter === "" ? undefined : activeFilter === "true";
+    fetchUsers(search, isActive);
   }
 
-  async function fetchUsers(searchValue?: string) {
+  async function fetchUsers(searchValue?: string, isActiveValue?: boolean) {
     try {
       setIsLoading(true);
       setError(null);
 
-      const response = await getUsers(searchValue);
+      const response = await getUsers(searchValue, isActiveValue);
       setUsers(response.users);
     } catch {
       setError("ユーザー一覧の取得に失敗しました");
@@ -90,6 +93,16 @@ function UserListPage() {
             onChange={(event) => setSearch(event.target.value)}
             placeholder="メールアドレスで検索"
           />
+
+          <select
+            value={activeFilter}
+            onChange={(event) => setActiveFilter(event.target.value)}
+          >
+            <option value="">全て</option>
+            <option value="true">有効</option>
+            <option value="false">無効</option>
+          </select>
+
           <button type="submit">検索</button>
         </form>
         <div className="user-list-actions">

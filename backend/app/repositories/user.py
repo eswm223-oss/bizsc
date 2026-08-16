@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models import User
 
-##　selfはクラスのインスタンスメソッドとして使用するために必須の設定値、インスタンスで使用される
+#　selfはクラスのインスタンスメソッドとして使用するために必須の設定値、インスタンスで使用される
 
 class UserRepository:
     def get_by_id(
@@ -25,20 +25,22 @@ class UserRepository:
     def get_all(
         self,
         db: Session,
-    ) -> list[User]:
-        statement = select(User).order_by(User.id)
-        return list(db.scalars(statement).all())
-
-    def search_by_email(
-        self,
-        db: Session,
         search: str,
+        is_active: bool | None = None
     ) -> list[User]:
-        statement = (
-            select(User)
-            .where(User.email.like(f"%{search}%"))
-            .order_by(User.id)
-        )
+        statement = select(User)
+
+        if search:
+            statement = statement.where(
+                User.email.like(f"%{search}%")
+            )
+
+        if is_active is not None:
+            statement = statement.where(
+                User.is_active == is_active
+            )
+
+        statement = statement.order_by(User.id)
 
         return list(db.scalars(statement).all())
 

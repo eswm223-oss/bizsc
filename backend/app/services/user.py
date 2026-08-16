@@ -54,11 +54,9 @@ class UserService:
         self,
         db: Session,
         search: str | None = None,
+        is_active: bool | None = None,
     ) -> list[User]:
-        if search:
-            return self.repository.search_by_email(db, search)
-        
-        return self.repository.get_all(db)
+        return self.repository.get_all(db, search=search, is_active=is_active)
     
     def update_user(
         self,

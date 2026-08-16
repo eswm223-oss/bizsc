@@ -40,9 +40,14 @@ def create_user(
 )
 def get_users(
     search: str | None = None,
+    is_active: bool | None = None,
     db: Session = Depends(get_db),
 ) -> UserListResponse:
-    users = user_service.get_users(db, search)
+    users = user_service.get_users(
+        db,
+        search=search,
+        is_active=is_active,
+    )
 
     return UserListResponse(
         users=[

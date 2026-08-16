@@ -9,10 +9,14 @@ import type {
 //***************************** */
 //取得
 //***************************** */
-export async function getUsers(search?: string): Promise<UserListResponse> {
+export async function getUsers(
+  search?: string,
+  isActive?: boolean,
+): Promise<UserListResponse> {
   const response = await apiClient.get<UserListResponse>("/users", {
     params: {
       search,
+      is_active: isActive,
     },
   });
 
