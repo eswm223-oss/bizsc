@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.models import User
@@ -29,9 +29,12 @@ class UserRepository:
         is_active: bool | None = None,
         sort_by: str = "id",
         sort_order: str ="asc",
+        page: int = 1,
+        limit: int = 10,
     ) -> list[User]:
         statement = select(User)
 
+        #==========ソート==========
         sort_columns = {
             "id": User.id,
             "email": User.email,
@@ -44,6 +47,11 @@ class UserRepository:
         else:
             statement = statement.order_by(sort_column.asc())
 
+        #==========ページング==========
+        offset = (page-1) * limit
+        statement = statement.offset(offset).limit(limit)
+
+        #==========サーチ==========
         if search:
             statement = statement.where(
                 User.email.like(f"%{search}%")
@@ -55,6 +63,25 @@ class UserRepository:
             )
 
         return list(db.scalars(statement).all())
+
+    def count_all(
+        self,
+        db: Session,
+        search: str | None = None,
+        is_active: bool | None = None,
+    ) -> int:
+        statement = select(func.count(User.id))
+
+        if search:
+            statement = statement.where(
+                User.email.like(f"%{search}%")
+            )
+        if is_active is not None:
+            statement = statement.where(
+                User.is_active == is_active
+            )
+            
+        return db.scalar(statement) or 0
 
     def create(
         self,

@@ -43,14 +43,18 @@ def get_users(
     is_active: bool | None = None,
     sort_by: str = "id",
     sort_order: str = "asc",
+    page: int = 1,
+    limit: int = 10,
     db: Session = Depends(get_db),
 ) -> UserListResponse:
-    users = user_service.get_users(
+    users, total = user_service.get_users(
         db,
         search=search,
         is_active=is_active,
         sort_by=sort_by,
         sort_order=sort_order,
+        page=page,
+        limit=limit,
     )
 
     return UserListResponse(
@@ -58,7 +62,7 @@ def get_users(
             UserResponse.model_validate(user)
             for user in users
         ],
-        total=len(users),
+        total=total,
     )
 
 @router.get(

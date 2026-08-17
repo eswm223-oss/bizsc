@@ -56,15 +56,28 @@ class UserService:
         search: str | None = None,
         is_active: bool | None = None,
         sort_by: str = "id",
-        sort_order: str = "asc"
-    ) -> list[User]:
-        return self.repository.get_all(
+        sort_order: str = "asc",
+        page: int = 1,
+        limit: int = 10,
+    ) -> tuple[list[User], int]:
+        
+        users = self.repository.get_all(
             db, 
             search=search, 
             is_active=is_active,
             sort_by=sort_by,
             sort_order=sort_order,
+            page=page,
+            limit=limit,
         )
+
+        total = self.repository.count_all(
+            db,
+            search=search,
+            is_active=is_active,
+        )
+
+        return users, total
     
     def update_user(
         self,
