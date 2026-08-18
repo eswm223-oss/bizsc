@@ -14,6 +14,8 @@ export async function getUsers(
   isActive?: boolean,
   sortBy?: string,
   sortOrder?: string,
+  page?: number,
+  limit?: number,
 ): Promise<UserListResponse> {
   const response = await apiClient.get<UserListResponse>("/users", {
     params: {
@@ -21,6 +23,8 @@ export async function getUsers(
       is_active: isActive,
       sort_by: sortBy,
       sort_order: sortOrder,
+      page: page,
+      limit: limit,
     },
   });
 

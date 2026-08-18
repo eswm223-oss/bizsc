@@ -18,22 +18,34 @@ function UserListPage() {
   const [activeFilter, setActiveFilter] = useState("");
   const [sortBy, setSortBy] = useState("id");
   const [sortOrder, setSortOrder] = useState("asc");
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(total / limit)); //ceil←小数点切り上げ
 
   //*************************************** */
   //screen処理
   //*************************************** */
+
+  //検索ボタン処理
   function handleSearch(event: React.SubmitEvent<HTMLFormElement>) {
+    //submitでも画面を再読み込みさせないようにする
     event.preventDefault();
 
+    //検索
     const isActive = activeFilter === "" ? undefined : activeFilter === "true";
-    fetchUsers(search, isActive, sortBy, sortOrder);
+    setPage(1);
+    fetchUsers(search, isActive, sortBy, sortOrder, 1, limit);
   }
 
+  //検索処理
   async function fetchUsers(
     searchValue?: string,
     isActiveValue?: boolean,
     sortByValue?: string,
     sortOrderValue?: string,
+    pageValue?: number,
+    limitValue?: number,
   ) {
     try {
       setIsLoading(true);
@@ -44,13 +56,44 @@ function UserListPage() {
         isActiveValue,
         sortByValue,
         sortOrderValue,
+        pageValue,
+        limitValue,
       );
       setUsers(response.users);
+      setTotal(response.total);
     } catch {
       setError("ユーザー一覧の取得に失敗しました");
     } finally {
       setIsLoading(false);
     }
+  }
+
+  //ページネーション(前)
+  function handlePreviousPage() {
+    if (page <= 1) {
+      return;
+    }
+
+    const previousPage = page - 1;
+    const isActive = activeFilter === "" ? undefined : activeFilter === "true";
+
+    setPage(previousPage);
+
+    fetchUsers(search, isActive, sortBy, sortOrder, previousPage, limit);
+  }
+
+  //ページネーション(次)
+  function handleNextPage() {
+    if (page >= totalPages) {
+      return;
+    }
+
+    const previousPage = page + 1;
+    const isActive = activeFilter === "" ? undefined : activeFilter === "true";
+
+    setPage(previousPage);
+
+    fetchUsers(search, isActive, sortBy, sortOrder, previousPage, limit);
   }
 
   //*************************************** */
@@ -65,6 +108,7 @@ function UserListPage() {
 
         if (!ignore) {
           setUsers(response.users);
+          setTotal(response.total);
         }
       } catch {
         if (!ignore) {
@@ -169,6 +213,25 @@ function UserListPage() {
             </tbody>
           </table>
         )}
+        <div className="user-pagination">
+          <button
+            type="button"
+            onClick={handlePreviousPage}
+            disabled={page <= 1}
+          >
+            前へ
+          </button>
+          <span>
+            {page} / {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={handleNextPage}
+            disabled={page >= totalPages}
+          >
+            次へ
+          </button>
+        </div>
       </Card>
     </div>
   );

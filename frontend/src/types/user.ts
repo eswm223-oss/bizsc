@@ -8,6 +8,7 @@ export type User = {
 
 export type UserListResponse = {
   users: User[];
+  total: number;
 };
 
 export type UserCreate = {
