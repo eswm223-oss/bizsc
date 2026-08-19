@@ -8,3 +8,4 @@ email-validator
 pwdlib[argon2]
 pytest
 httpx
+httpx2
