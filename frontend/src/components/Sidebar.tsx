@@ -2,14 +2,19 @@ import { Link } from "react-router-dom";
 
 function Sidebar() {
   return (
-    <aside>
+    <aside className="bg-light border-end p-3" style={{ width: "130px" }}>
       <nav>
-        <ul>
-          <li>
-            <Link to="/">Home</Link>
+        <ul className="nav flex-column">
+          <li className="nav-item">
+            <Link className="nav-link" to="/">
+              Home
+            </Link>
           </li>
-          <li>
-            <Link to="/users">Users</Link>
+
+          <li className="nav-item">
+            <Link className="nav-link" to="/users">
+              Users
+            </Link>
           </li>
         </ul>
       </nav>

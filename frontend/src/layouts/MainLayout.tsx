@@ -13,7 +13,9 @@ function MainLayout() {
         <Sidebar />
 
         <main className="main-layout__content">
-          <Outlet />
+          <div className="container-fluid">
+            <Outlet />
+          </div>
         </main>
       </div>
 
