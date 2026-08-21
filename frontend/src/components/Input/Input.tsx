@@ -1,5 +1,4 @@
 import type { InputHTMLAttributes } from "react";
-import "./Input.css";
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
@@ -8,22 +7,20 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & {
 
 function Input({ label, error, id, className = "", ...props }: InputProps) {
   return (
-    <div className="input-field">
+    <div className="mb-3">
       {label && (
-        <label className="input-field__label" htmlFor={id}>
+        <label className="form-label" htmlFor={id}>
           {label}
         </label>
       )}
 
       <input
         id={id}
-        className={`input-field__input ${
-          error ? "input-field__input--error" : ""
-        } ${className}`.trim()}
+        className={`form-control ${error ? "is-invalid" : ""} ${className}`.trim()}
         {...props}
       />
 
-      {error && <p className="input-field__error">{error}</p>}
+      {error && <div className="invalid-feedback">{error}</div>}
     </div>
   );
 }

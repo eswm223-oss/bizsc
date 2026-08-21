@@ -1,5 +1,4 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import "./Button.css";
 
 type ButtonVariant = "primary" | "secondary" | "danger";
 
@@ -15,10 +14,7 @@ function Button({
   ...props
 }: ButtonProps) {
   return (
-    <button
-      className={`button button--${variant} ${className}`.trim()}
-      {...props}
-    >
+    <button className={`btn btn-${variant} ${className}`.trim()} {...props}>
       {children}
     </button>
   );

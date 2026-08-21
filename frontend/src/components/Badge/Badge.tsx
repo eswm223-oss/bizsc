@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
 
-import "./Badge.css";
-
 type BadgeVariant = "success" | "neutral";
 
 type BadgeProps = {
@@ -10,7 +8,11 @@ type BadgeProps = {
 };
 
 function Badge({ children, variant = "neutral" }: BadgeProps) {
-  return <span className={`badge badge--${variant}`}>{children}</span>;
+  const bootstrapVariant = variant === "success" ? "success" : "secondary";
+
+  return (
+    <span className={`badge text-bg-${bootstrapVariant}`}>{children}</span>
+  );
 }
 
 export default Badge;

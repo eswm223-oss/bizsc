@@ -1,5 +1,4 @@
 import type { HTMLAttributes, ReactNode } from "react";
-import "./Card.css";
 
 type CardProps = HTMLAttributes<HTMLDivElement> & {
   title?: string;
@@ -8,10 +7,14 @@ type CardProps = HTMLAttributes<HTMLDivElement> & {
 
 function Card({ title, children, className = "", ...props }: CardProps) {
   return (
-    <section className={`card ${className}`.trim()} {...props}>
-      {title && <h2 className="card__title">{title}</h2>}
+    <section className={`card shadow-sm ${className}`.trim()} {...props}>
+      {title && (
+        <div className="card-header">
+          <h2 className="h5 mb-0">{title}</h2>
+        </div>
+      )}
 
-      <div className="card__content">{children}</div>
+      <div className="card-body">{children}</div>
     </section>
   );
 }

@@ -7,6 +7,7 @@ import Card from "../components/Card/Card";
 import Loading from "../components/Loading/Loading";
 import ErrorMessage from "../components/ErrorMessage/ErrorMessage";
 import Badge from "../components/Badge/Badge";
+import Button from "../components/Button/Button";
 
 import "./UserListPage.css";
 
@@ -177,7 +178,7 @@ function UserListPage() {
             <option value="desc">降順</option>
           </select>
 
-          <button type="submit">検索</button>
+          <Button type="submit">検索</Button>
         </form>
         <div className="user-list-actions">
           <Link to="/users/new">ユーザーを新規作成</Link>
