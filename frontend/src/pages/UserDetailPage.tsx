@@ -9,7 +9,6 @@ import Badge from "../components/Badge/Badge";
 import { deleteUser, getUser } from "../api/users";
 
 import type { User } from "../types/user";
-import "./UserDetailPage.css";
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("ja-JP");
@@ -86,48 +85,57 @@ function UserDetailPage() {
     }
   }
 
-  //ユーザ情報削除
-
   return (
-    <Card title="ユーザー詳細">
-      <dl className="user-detail">
-        <dt>ID</dt>
-        <dd>{user.id}</dd>
+    <div className="row justify-content-center">
+      <div className="col-12 col-lg-8 col-xl-6">
+        <Card title="ユーザー詳細">
+          <dl className="row mb-0">
+            <dt className="col-sm-4 mb-3">ID</dt>
+            <dd className="col-sm-8 mb-3">{user.id}</dd>
 
-        <dt>メールアドレス</dt>
-        <dd>{user.email}</dd>
+            <dt className="col-sm-4 mb-3">メールアドレス</dt>
+            <dd className="col-sm-8 mb-3">{user.email}</dd>
 
-        <dt>ステータス</dt>
-        <dd>
-          <Badge variant={user.is_active ? "success" : "neutral"}>
-            {user.is_active ? "有効" : "無効"}
-          </Badge>
-        </dd>
+            <dt className="col-sm-4 mb-3">ステータス</dt>
+            <dd className="col-sm-8 mb-3">
+              <Badge variant={user.is_active ? "success" : "neutral"}>
+                {user.is_active ? "有効" : "無効"}
+              </Badge>
+            </dd>
 
-        <dt>作成日時</dt>
-        <dd>{formatDateTime(user.created_at)}</dd>
+            <dt className="col-sm-4 mb-3">作成日時</dt>
+            <dd className="col-sm-8 mb-3">{formatDateTime(user.created_at)}</dd>
 
-        <dt>更新日時</dt>
-        <dd>{formatDateTime(user.updated_at)}</dd>
-      </dl>
+            <dt className="col-sm-4 mb-0">更新日時</dt>
+            <dd className="col-sm-8 mb-0">{formatDateTime(user.updated_at)}</dd>
+          </dl>
 
-      <div className="user-detail-actions">
-        <Link to="/users">一覧へ戻る</Link>
+          <div className="d-flex justify-content-between align-items-center mt-4">
+            <Link className="btn btn-secondary" to="/users">
+              一覧へ戻る
+            </Link>
 
-        <div className="user-detail-actions__right">
-          <Link to={`/users/${user.id}/edit`}>編集</Link>
+            <div className="d-flex align-items-center gap-2">
+              <Link
+                className="btn btn-outline-primary"
+                to={`/users/${user.id}/edit`}
+              >
+                編集
+              </Link>
 
-          <Button
-            type="button"
-            variant="danger"
-            onClick={handleDelete}
-            disabled={isDeleting}
-          >
-            {isDeleting ? "削除中..." : "削除"}
-          </Button>
-        </div>
+              <Button
+                type="button"
+                variant="danger"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "削除中..." : "削除"}
+              </Button>
+            </div>
+          </div>
+        </Card>
       </div>
-    </Card>
+    </div>
   );
 }
 

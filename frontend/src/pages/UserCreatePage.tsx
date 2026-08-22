@@ -76,24 +76,32 @@ function UserCreatePage() {
   }
 
   return (
-    <Card title="ユーザ新規登録">
-      {submitError && <ErrorMessage message={submitError} />}
+    <div className="row justify-content-center">
+      <div className="col-12 col-lg-8 col-xl-6">
+        <Card title="ユーザ新規登録">
+          {submitError && <ErrorMessage message={submitError} />}
 
-      <UserForm
-        email={email}
-        onEmailChange={setEmail}
-        emailError={emailError}
-        password={password}
-        onPasswordChange={setPassword}
-        passwordError={passwordError}
-        isSubmitting={isSubmitting}
-        submitLabel="作成"
-        submittingLabel="作成中..."
-        onSubmit={handleSubmit}
-      />
+          <UserForm
+            email={email}
+            onEmailChange={setEmail}
+            emailError={emailError}
+            password={password}
+            onPasswordChange={setPassword}
+            passwordError={passwordError}
+            isSubmitting={isSubmitting}
+            submitLabel="作成"
+            submittingLabel="作成中..."
+            onSubmit={handleSubmit}
+          />
 
-      <Link to="/users">キャンセル</Link>
-    </Card>
+          <div className="mt-3">
+            <Link className="btn btn-secondary" to="/users">
+              キャンセル
+            </Link>
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 }
 
