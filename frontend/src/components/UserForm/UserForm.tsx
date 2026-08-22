@@ -2,7 +2,6 @@ import type { SubmitEvent } from "react";
 
 import Button from "../Button/Button";
 import Input from "../Input/Input";
-import "./UserForm.css";
 
 type UserFormProps = {
   email: string;
@@ -38,7 +37,7 @@ function UserForm({
   onSubmit,
 }: UserFormProps) {
   return (
-    <form className="user-form" onSubmit={onSubmit}>
+    <form className="d-flex flex-column gap-3" onSubmit={onSubmit}>
       <Input
         id="email"
         type="email"
@@ -64,17 +63,22 @@ function UserForm({
       )}
 
       {isActive !== undefined && onIsActiveChange && (
-        <label>
+        <div className="form-check">
           <input
+            id="isActive"
+            className="form-check-input"
             type="checkbox"
             checked={isActive}
             onChange={(event) => onIsActiveChange(event.target.checked)}
             disabled={isSubmitting}
           />
-          有効
-        </label>
+          <label className="form-check-label" htmlFor="isActive">
+            有効
+          </label>
+        </div>
       )}
-      <div className="user-form__actions">
+
+      <div className="d-flex justify-content-end mt-2">
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? submittingLabel : submitLabel}
         </Button>
