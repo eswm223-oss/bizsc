@@ -9,8 +9,6 @@ import ErrorMessage from "../components/ErrorMessage/ErrorMessage";
 import Badge from "../components/Badge/Badge";
 import Button from "../components/Button/Button";
 
-import "./UserListPage.css";
-
 function UserListPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -143,51 +141,75 @@ function UserListPage() {
   return (
     <div className="user-list-page">
       <Card title="ユーザー一覧">
-        <form onSubmit={handleSearch} className="user-search-form">
-          <input
-            type="text"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="メールアドレスで検索"
-          />
+        <form onSubmit={handleSearch} className="row g-2 align-items-end mb-4">
+          <div className="col-md-4">
+            <label className="form-label">メールアドレス</label>
+            <input
+              type="text"
+              className="form-control"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="メールアドレスで検索"
+            />
+          </div>
 
-          <select
-            value={activeFilter}
-            onChange={(event) => setActiveFilter(event.target.value)}
-          >
-            <option value="">全て</option>
-            <option value="true">有効</option>
-            <option value="false">無効</option>
-          </select>
+          <div className="col-md-2">
+            <label className="form-label">ステータス</label>
+            <select
+              className="form-select"
+              value={activeFilter}
+              onChange={(event) => setActiveFilter(event.target.value)}
+            >
+              <option value="">全て</option>
+              <option value="true">有効</option>
+              <option value="false">無効</option>
+            </select>
+          </div>
 
-          <select
-            value={sortBy}
-            onChange={(event) => setSortBy(event.target.value)}
-          >
-            <option value="id">ID</option>
-            <option value="email">メールアドレス</option>
-            <option value="created_at">作成日時</option>
-            <option value="updated_at">更新日時</option>
-          </select>
+          <div className="col-md-2">
+            <label className="form-label">並び替え</label>
+            <select
+              className="form-select"
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value)}
+            >
+              <option value="id">ID</option>
+              <option value="email">メールアドレス</option>
+              <option value="created_at">作成日時</option>
+              <option value="updated_at">更新日時</option>
+            </select>
+          </div>
 
-          <select
-            value={sortOrder}
-            onChange={(event) => setSortOrder(event.target.value)}
-          >
-            <option value="asc">昇順</option>
-            <option value="desc">降順</option>
-          </select>
+          <div className="col-md-2">
+            <label className="form-label">順序</label>
+            <select
+              className="form-select"
+              value={sortOrder}
+              onChange={(event) => setSortOrder(event.target.value)}
+            >
+              <option value="asc">昇順</option>
+              <option value="desc">降順</option>
+            </select>
+          </div>
 
-          <Button type="submit">検索</Button>
+          <div className="col-md-2">
+            <Button type="submit" className="w-100">
+              検索
+            </Button>
+          </div>
         </form>
-        <div className="user-list-actions">
-          <Link to="/users/new">ユーザーを新規作成</Link>
+        <div className="d-flex justify-content-end mb-3">
+          <Link className="btn btn-primary" to="/users/new">
+            ユーザーを新規作成
+          </Link>
         </div>
         {users.length === 0 ? (
-          <p className="user-list-empty">ユーザーが登録されていません</p>
+          <div className="alert alert-secondary text-center mb-0">
+            ユーザーが登録されていません
+          </div>
         ) : (
-          <table className="user-table">
-            <thead>
+          <table className="table table-striped table-hover align-middle">
+            <thead className="table-light">
               <tr>
                 <th>ID</th>
                 <th>メールアドレス</th>
@@ -207,31 +229,40 @@ function UserListPage() {
                     </Badge>
                   </td>
                   <td>
-                    <Link to={`/users/${user.id}`}>詳細</Link>
+                    <Link
+                      className="btn btn-outline-primary btn-sm"
+                      to={`/users/${user.id}`}
+                    >
+                      詳細
+                    </Link>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-        <div className="user-pagination">
-          <button
+        <div className="d-flex justify-content-center align-items-center gap-3 mt-4">
+          <Button
             type="button"
+            variant="secondary"
             onClick={handlePreviousPage}
             disabled={page <= 1}
           >
             前へ
-          </button>
-          <span>
+          </Button>
+
+          <span className="text-secondary">
             {page} / {totalPages}
           </span>
-          <button
+
+          <Button
             type="button"
+            variant="secondary"
             onClick={handleNextPage}
             disabled={page >= totalPages}
           >
             次へ
-          </button>
+          </Button>
         </div>
       </Card>
     </div>
