@@ -1,5 +1,5 @@
 import { useEffect, useState, type SubmitEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { AxiosError } from "axios";
 
 import { getUser, updateUser } from "../api/users";
@@ -100,19 +100,29 @@ function UserEditPage() {
   }
 
   return (
-    <Card title="ユーザー編集">
-      <UserForm
-        email={email}
-        onEmailChange={setEmail}
-        emailError={emailError}
-        isActive={isActive}
-        onIsActiveChange={setIsActive}
-        isSubmitting={isSubmitting}
-        submitLabel="更新"
-        submittingLabel="更新中..."
-        onSubmit={handleSubmit}
-      />
-    </Card>
+    <div className="row justify-content-center">
+      <div className="col-12 col-lg-8 col-xl-6">
+        <Card title="ユーザー編集">
+          <UserForm
+            email={email}
+            onEmailChange={setEmail}
+            emailError={emailError}
+            isActive={isActive}
+            onIsActiveChange={setIsActive}
+            isSubmitting={isSubmitting}
+            submitLabel="更新"
+            submittingLabel="更新中..."
+            onSubmit={handleSubmit}
+          />
+
+          <div className="mt-3">
+            <Link className="btn btn-secondary" to={`/users/${userId}`}>
+              キャンセル
+            </Link>
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 }
 
