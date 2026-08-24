@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -11,6 +12,8 @@ class Settings(BaseSettings):
     db_name: str
     db_user: str
     db_password: str
+
+    edinet_api_key: Optional[str] = None # str | Noneと同じ意味
 
     @property
     def database_url(self) -> str:
