@@ -4,9 +4,6 @@ services:
       context: ./backend
     container_name: bizsc-backend
 
-    environment:
-      PYDEVD_USE_SYS_MONITORING: "0"
-
     ports:
       - "8000:8000"
       - "5678:5678"
