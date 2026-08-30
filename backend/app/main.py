@@ -10,6 +10,7 @@ from app.db.database import get_db
 
 from app.api.users import router as users_router
 from app.api.health import router as health_router
+from app.api.apiTest import router as apiTest_router
 
 from app.core.exception_handlers import register_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +29,7 @@ register_exception_handlers(app)
 #Router
 app.include_router(users_router)
 app.include_router(health_router)
+app.include_router(apiTest_router)
 
 @app.get("/")
 def root():
@@ -43,3 +45,4 @@ def check_database(db: Session = Depends(get_db)):
         "status": "ok",
         "database": "connected",
     }
+

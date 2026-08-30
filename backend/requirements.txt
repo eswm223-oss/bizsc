@@ -9,3 +9,4 @@ pwdlib[argon2]
 pytest
 httpx
 httpx2
+debugpy
