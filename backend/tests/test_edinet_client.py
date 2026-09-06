@@ -1,3 +1,5 @@
+import io
+import zipfile
 from datetime import date
 from unittest.mock import patch
 
@@ -6,11 +8,15 @@ import pytest
 
 from app.clients.edinet import (
     DOCUMENTS_LIST_URL,
+    EDINET_CODE_LIST_URL,
     EdinetApiKeyNotConfiguredError,
+    EdinetClientError,
     EdinetHttpError,
     EdinetInvalidJsonError,
     EdinetTimeoutError,
     fetch_document_list,
+    fetch_listed_sec_codes,
+    _parse_listed_sec_codes_from_zip,
 )
 
 FAKE_API_KEY = "test-edinet-key-secret"
@@ -120,3 +126,82 @@ def test_fetch_document_list_raises_invalid_json_error(
         fetch_document_list(TARGET_DATE)
 
     _assert_no_secret_in_exception(exc_info.value)
+
+
+def _code_list_csv(
+    rows: list[tuple[str, str]],
+    metadata: str = "ダウンロード日:2026-09-06",
+) -> str:
+    lines = [
+        metadata,
+        "ＥＤＩＮＥＴコード,上場区分,証券コード",
+    ]
+    for listed_status, sec_code in rows:
+        lines.append(f"E00001,{listed_status},{sec_code}")
+    return "\n".join(lines) + "\n"
+
+
+def _code_list_zip_bytes(csv_text: str) -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("EdinetcodeDlInfo.csv", csv_text.encode("cp932"))
+    return buffer.getvalue()
+
+
+def test_parse_listed_sec_codes_keeps_strings_and_filters_rows() -> None:
+    zip_bytes = _code_list_zip_bytes(
+        _code_list_csv(
+            [
+                ("上場", "7203"),
+                ("上場", "7203"),
+                ("上場", "0123"),
+                ("非上場", "9999"),
+                ("上場", ""),
+                ("上場", "   "),
+                (" 上場 ", "1301"),
+            ]
+        )
+    )
+
+    sec_codes = _parse_listed_sec_codes_from_zip(zip_bytes)
+
+    assert sec_codes == {"7203", "0123", "1301"}
+    assert all(isinstance(sec_code, str) for sec_code in sec_codes)
+
+
+@patch("app.clients.edinet.httpx.get")
+def test_fetch_listed_sec_codes_downloads_official_zip(mock_get) -> None:
+    zip_bytes = _code_list_zip_bytes(
+        _code_list_csv([("上場", "7203"), ("非上場", "1111")])
+    )
+    request = httpx.Request("GET", EDINET_CODE_LIST_URL)
+    mock_get.return_value = httpx.Response(
+        200,
+        request=request,
+        content=zip_bytes,
+    )
+
+    sec_codes = fetch_listed_sec_codes()
+
+    mock_get.assert_called_once()
+    args, kwargs = mock_get.call_args
+    assert args[0] == EDINET_CODE_LIST_URL
+    assert "params" not in kwargs or "Subscription-Key" not in kwargs.get("params", {})
+    assert sec_codes == {"7203"}
+
+
+@patch("app.clients.edinet.httpx.get")
+def test_fetch_listed_sec_codes_raises_timeout_error(mock_get) -> None:
+    mock_get.side_effect = httpx.TimeoutException("timed out")
+
+    with pytest.raises(EdinetTimeoutError):
+        fetch_listed_sec_codes()
+
+
+def test_parse_listed_sec_codes_raises_when_csv_is_missing() -> None:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("other.csv", "x".encode("cp932"))
+
+    with pytest.raises(EdinetClientError):
+        _parse_listed_sec_codes_from_zip(buffer.getvalue())

@@ -1,4 +1,7 @@
+import csv
+import io
 import json
+import zipfile
 from datetime import date
 from typing import Any, Optional
 
@@ -9,6 +12,14 @@ from app.core.config import settings
 DOCUMENTS_LIST_URL = "https://api.edinet-fsa.go.jp/api/v2/documents.json"
 DOCUMENT_LIST_TYPE = 2
 REQUEST_TIMEOUT_SECONDS = 30.0
+EDINET_CODE_LIST_URL = (
+    "https://disclosure2dl.edinet-fsa.go.jp/searchdocument/codelist/Edinetcode.zip"
+)
+EDINET_CODE_LIST_CSV_NAME = "EdinetcodeDlInfo.csv"
+EDINET_CODE_LIST_ENCODING = "cp932"
+LISTED_STATUS_COLUMN = "上場区分"
+LISTED_STATUS_VALUE = "上場"
+SEC_CODE_COLUMN = "証券コード"
 
 
 class EdinetClientError(Exception):
@@ -61,6 +72,75 @@ def fetch_document_list(target_date: date) -> Any:
         )
 
     return _parse_json_body(response)
+
+
+def fetch_listed_sec_codes() -> set[str]:
+    zip_bytes = _download_edinet_code_list_zip()
+    return _parse_listed_sec_codes_from_zip(zip_bytes)
+
+
+def _download_edinet_code_list_zip() -> bytes:
+    try:
+        response = httpx.get(
+            EDINET_CODE_LIST_URL,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+    except httpx.TimeoutException:
+        raise EdinetTimeoutError("EDINET code list request timed out") from None
+    except httpx.RequestError:
+        raise EdinetClientError("EDINET code list request failed") from None
+
+    if response.status_code != 200:
+        raise EdinetHttpError(
+            response.status_code,
+            _http_error_message(response),
+        )
+    return response.content
+
+
+def _parse_listed_sec_codes_from_zip(zip_bytes: bytes) -> set[str]:
+    try:
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+            try:
+                csv_bytes = archive.read(EDINET_CODE_LIST_CSV_NAME)
+            except KeyError:
+                raise EdinetClientError(
+                    "EDINET code list ZIP does not contain EdinetcodeDlInfo.csv"
+                ) from None
+    except zipfile.BadZipFile:
+        raise EdinetClientError("EDINET code list response is not a valid ZIP") from None
+
+    try:
+        csv_text = csv_bytes.decode(EDINET_CODE_LIST_ENCODING)
+    except UnicodeDecodeError:
+        raise EdinetClientError(
+            "EDINET code list CSV is not valid CP932"
+        ) from None
+
+    stream = io.StringIO(csv_text)
+    try:
+        next(stream)
+    except StopIteration:
+        raise EdinetClientError("EDINET code list CSV is empty") from None
+
+    reader = csv.DictReader(stream)
+    if reader.fieldnames is None:
+        raise EdinetClientError("EDINET code list CSV header is missing")
+    if (
+        LISTED_STATUS_COLUMN not in reader.fieldnames
+        or SEC_CODE_COLUMN not in reader.fieldnames
+    ):
+        raise EdinetClientError(
+            "EDINET code list CSV is missing required columns"
+        )
+
+    sec_codes: set[str] = set()
+    for row in reader:
+        listed_status = (row.get(LISTED_STATUS_COLUMN) or "").strip()
+        sec_code = (row.get(SEC_CODE_COLUMN) or "").strip()
+        if listed_status == LISTED_STATUS_VALUE and sec_code:
+            sec_codes.add(sec_code)
+    return sec_codes
 
 
 def _require_api_key() -> str:
