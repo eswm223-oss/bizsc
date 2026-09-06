@@ -1,61 +1,64 @@
 # BizSC Architecture
 
+更新日: 2026-09-06
+
 ## 1. このドキュメントの目的
 
 このドキュメントは、BizSC の**現在のシステム構成・責務分離・実装ルールを確認するための基準資料**です。
 
-過去にどの Phase で何を実装したかを詳細に記録することを目的とはしません。
+過去の各 Phase / Step の詳細な作業履歴ではなく、現在の構成と今後の実装判断の基準を記載します。
 
-今後 BizSC に新しい業務機能を追加する際は、この構成を基準として既存設計との整合性を確認します。
+具体的な進捗・次の作業・直前の検証結果は `handover_phase.md` 側で管理します。
 
 ---
 
 ## 2. プロジェクト概要
 
-**プロジェクト名:** BizSC
+**Project:** BizSC
 
-BizSC は、今後さまざまな業務機能を段階的に追加できる Web アプリケーション基盤として構成されています。
+BizSC は、業務機能を段階的に追加していく Web Application です。
 
-現時点では、主に以下が実装されています。
+現在の主要技術構成:
 
-- Docker Compose による開発環境
-- FastAPI Backend
-- PostgreSQL Database
-- SQLAlchemy ORM
-- Alembic Migration
-- React + TypeScript Frontend
+- Docker Desktop
+- Docker Compose
+- FastAPI
+- Python
+- SQLAlchemy
+- PostgreSQL 17
+- Alembic
+- Pydantic / pydantic-settings
+- pytest
+- httpx
+- React
+- TypeScript
+- Vite
 - React Router
 - Axios
 - Bootstrap
-- User CRUD
-- User 一覧検索
-- Active / Inactive Filter
-- Sort
-- Pagination
-- Loading / Error / Empty 表示
-- Backend pytest
-- Frontend lint / build
-- 外部 API Client 層
-- EDINET API Version 2 接続
-- EDINET 書類一覧取得 Client
+- Cursor
+- GitHub Desktop
+- TablePlus
 
-今後追加する業務機能については、必要なものを小さな Phase に分けて設計・実装します。
+現在の主要 Domain:
+
+- User
+- EDINET Document Inventory
 
 ---
 
 ## 3. 全体アーキテクチャ
 
-通常の BizSC Web API 処理は以下の構造です。
+通常の BizSC Web API は以下のレイヤーで構成します。
 
 ```text
 Browser
   │
-  │  http://localhost:5173
+  │ http://localhost:5173
   ▼
 React / TypeScript / Vite
   │
-  │  Axios
-  │  http://localhost:8000
+  │ Axios
   ▼
 FastAPI
   │
@@ -75,43 +78,84 @@ SQLAlchemy Model
 PostgreSQL
 ```
 
-外部サービスとの通信は、DB Repository とは分離します。
+外部 API を利用する処理では Client を分離します。
 
 ```text
-BizSC Backend
-   │
-   ▼
-Client
-   │
-   ▼
 External API
+    ▲
+    │ HTTP
+    │
+Client
+    ▲
+    │
+Service
+    │
+    ├────────► Repository ──► Model ──► PostgreSQL
+    │
+    ▼
+Business Logic
 ```
 
-現在の例:
+EDINET の現在の構成:
 
 ```text
-BizSC Backend
-   │
-   ▼
-EDINET Client
-   │
-   ▼
-EDINET API Version 2
+EDINET API / EDINET Code List
+        │
+        ▼
+backend/app/clients/edinet.py
+        │
+        ▼
+EdinetInventoryService
+        │
+        ▼
+EdinetInventoryRepository
+        │
+        ▼
+EdinetDocument / EdinetInventoryRun
+        │
+        ▼
+PostgreSQL
 ```
 
-Docker Compose 上では、以下の 3 Service を利用します。
+Client と Repository は別責務です。
 
-```text
-frontend
-backend
-db
-```
-
-EDINET 用の追加 Docker Service は使用していません。
+- **Client**: 外部サービスとの通信
+- **Repository**: PostgreSQL への DB Access
+- **Service**: Client と Repository を組み合わせた業務処理
+- **Model**: DB Table 定義
+- **API Router**: HTTP Request / Response
 
 ---
 
-## 4. プロジェクトルート構成
+## 4. 開発環境
+
+主な開発環境:
+
+```text
+OS: Windows
+Workspace:
+D:\Development\apps\bizsc
+```
+
+主な Tool:
+
+- Cursor
+- GitHub Desktop
+- Docker Desktop
+- Docker Compose
+- TablePlus
+
+GitHub Repository:
+
+```text
+https://github.com/eswm223-oss/bizsc
+```
+
+コード内容を確認する必要がある場合は、推測ではなく GitHub の最新コードを確認します。
+
+---
+
+## 5. Project Root
 
 ```text
 bizsc/
@@ -125,39 +169,41 @@ bizsc/
 └─ .gitignore
 ```
 
-主な役割は以下です。
-
 | Path | 役割 |
 |---|---|
 | `backend/` | FastAPI Backend |
 | `frontend/` | React Frontend |
-| `docs/` | 設計・引継ぎ・機能指示資料 |
-| `compose.yaml` | Docker Compose 構成 |
+| `docs/` | Architecture / Handover / Project Overview 等 |
+| `compose.yaml` | Docker Compose |
 | `README.md` | Project の基本説明 |
 
 ---
 
-## 5. Docker Compose 構成
+## 6. Docker Compose
+
+BizSC は基本的に以下の 3 Service で開発します。
+
+```text
+frontend
+backend
+db
+```
 
 ### backend
 
 ```text
-Service: backend
 Container: bizsc-backend
 Port: 8000
 Volume: ./backend:/app
 ```
 
-Backend のソースコードは Volume Mount されています。
+Backend Source は Volume Mount されています。
 
-通常の Python コード変更だけで毎回 Docker Image を Build する必要はありません。
-
----
+通常の Python Source 修正だけなら、毎回 Image Build は不要です。
 
 ### frontend
 
 ```text
-Service: frontend
 Container: bizsc-frontend
 Port: 5173
 Volume:
@@ -165,16 +211,11 @@ Volume:
   /app/node_modules
 ```
 
-Frontend もソースコードを Volume Mount しています。
-
-`node_modules` は Container 側で管理します。
-
----
+Frontend Source も Volume Mount されています。
 
 ### db
 
 ```text
-Service: db
 Container: bizsc-db
 Image: postgres:17
 Port: 5432
@@ -183,27 +224,18 @@ User: bizsc
 Volume: postgres-data
 ```
 
-PostgreSQL のデータは Docker Volume に保持されます。
+PostgreSQL Data は Docker Volume に保存します。
+
+### Windows 版 PostgreSQL との競合
+
+Windows にインストールされた PostgreSQL Service が `5432` を使用すると、
+Docker の PostgreSQL と接続先が混在することがあります。
+
+BizSC では Docker PostgreSQL を利用するため、不要な Windows PostgreSQL Service は停止した状態を基本とします。
 
 ---
 
-## 6. Backend 技術構成
-
-Backend の主な技術は以下です。
-
-- Python
-- FastAPI
-- SQLAlchemy
-- PostgreSQL
-- psycopg
-- Alembic
-- Pydantic / pydantic-settings
-- email-validator
-- pwdlib / Argon2
-- pytest
-- httpx
-
-Backend の基本構成は次のとおりです。
+## 7. Backend 基本構成
 
 ```text
 backend/
@@ -211,11 +243,10 @@ backend/
 ├─ requirements.txt
 ├─ alembic.ini
 ├─ alembic/
+│  └─ versions/
 ├─ app/
 │  ├─ api/
 │  ├─ clients/
-│  │  ├─ __init__.py
-│  │  └─ edinet.py
 │  ├─ core/
 │  ├─ db/
 │  ├─ models/
@@ -226,260 +257,214 @@ backend/
 └─ tests/
 ```
 
+主な Backend 技術:
+
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- psycopg
+- Alembic
+- Pydantic
+- pydantic-settings
+- pytest
+- httpx
+
 ---
 
-## 7. Backend レイヤー構成
+## 8. Backend Layer の責務
 
-BizSC Backend は責務を分離して実装します。
+### 8.1 API Router
 
-DB を利用する通常の業務処理:
-
-```text
-API Router
-   ↓
-Service
-   ↓
-Repository
-   ↓
-Model
-   ↓
-Database
-```
-
-外部 API 通信:
+配置:
 
 ```text
-Service または必要な呼び出し元
-   ↓
-Client
-   ↓
-External API
+backend/app/api/
 ```
 
-Client は Repository の代替ではありません。
+責務:
 
-- Repository: PostgreSQL / SQLAlchemy を使う DB Access
-- Client: EDINET など外部サービスとの通信
-
-として責務を明確に分離します。
-
-### 7.1 api
-
-HTTP Request / Response を担当します。
-
-主な責務:
-
-- URL 定義
-- HTTP Method 定義
-- Query Parameter
+- URL
+- HTTP Method
 - Path Parameter
+- Query Parameter
 - Request Schema
 - Response Schema
 - Dependency Injection
 - Service 呼び出し
 
-API 層に DB 操作や複雑な業務ロジックを直接書かない方針とします。
+API Router に複雑な Business Logic や SQLAlchemy Query を直接書かない方針です。
 
----
+### 8.2 Service
 
-### 7.2 services
+配置:
 
-Application / Business Logic を担当します。
+```text
+backend/app/services/
+```
 
-主な責務:
+責務:
 
-- Repository の呼び出し
-- Client の呼び出しが必要な業務処理の組み立て
-- CRUD 処理の組み立て
-- 入力値に応じた判断
-- 重複チェック
-- Not Found 判定
-- Password Hash 化など、Repository より上位の処理
+- Business Logic
+- Client 呼び出し
+- Repository 呼び出し
+- 複数処理の組み立て
+- Transaction の境界
+- Error 時の rollback / status 更新
 
-Service は HTTP や具体的な DB 実装へ依存しすぎないようにします。
+EDINET のように「外部 API 取得 → Filter → DB刷新」を行う処理は Service が中心になります。
 
----
+### 8.3 Repository
 
-### 7.3 repositories
+配置:
 
-Database Access を担当します。
+```text
+backend/app/repositories/
+```
 
-主な責務:
+責務:
 
-- `select`
-- `insert`
-- `update`
-- `delete`
+- select
+- insert
+- update
+- delete
 - filter
 - sort
 - pagination
 - count
+- SQLAlchemy Session を利用した DB Access
 
-SQLAlchemy を使用した DB 操作を Repository に集約します。
+Transaction 全体を Service で制御する必要がある処理では、
+Repository 内で勝手に `commit()` しない設計を採用します。
 
-外部 HTTP API との通信は Repository に置きません。
+### 8.4 Model
 
----
+配置:
 
-### 7.4 models
+```text
+backend/app/models/
+```
 
 SQLAlchemy Model を定義します。
+DB Schema 変更は Alembic Migration を通します。
 
-DB Table の構造を表します。
+### 8.5 Schema
 
-Model を変更しただけでは、既存 Database の Schema は自動的には変更しません。
+配置:
 
-DB Schema の変更には Alembic Migration を利用します。
-
----
-
-### 7.5 schemas
-
-Pydantic Schema を管理します。
+```text
+backend/app/schemas/
+```
 
 主な用途:
 
 - API Request
 - API Response
 - Validation
-- Create 用 Schema
-- Update 用 Schema
+- Create / Update Schema
 - List Response
 
-DB Model と API Schema は別の責務として扱います。
+### 8.6 Client
 
-外部 API のレスポンスを必ず即座に Pydantic 化する必要はありません。
-実データ構造を確認してから必要性を判断します。
+配置:
 
----
+```text
+backend/app/clients/
+```
 
-### 7.6 db
+外部 Service との通信を担当します。
 
-Database 接続関連を管理します。
+責務:
 
-主な対象:
+- Endpoint
+- Request Parameter
+- Header / API Key
+- HTTP
+- Timeout
+- HTTP Error
+- Response 取得
+- 外部データ形式の Parsing
+- 秘密情報を漏らさない Error Handling
 
-- SQLAlchemy Base
-- Engine
-- Session
-- `get_db`
+### 8.7 db
 
-FastAPI の Dependency Injection を利用して DB Session を API に渡します。
+```text
+backend/app/db/
+├─ base.py
+└─ database.py
+```
 
----
+`database.py` では `engine` と `SessionLocal` を生成します。
 
-### 7.7 core
+### 8.8 core
 
-Application 全体で利用する共通設定を管理します。
+Application 全体の共通設定です。
 
-現在の構成には、主に次の責務があります。
-
-- Application Settings
-- Database Settings
-- External API Settings
-- Exception Handler
-- Security
-
-EDINET API Key は `Settings` で管理します。
+EDINET API Key:
 
 ```python
 edinet_api_key: Optional[str] = None
 ```
 
-環境変数名:
+Environment Variable:
 
 ```text
 EDINET_API_KEY
 ```
 
-API Key をソースコードへ直接記述しません。
-
-`.env` および `.env.*` は Git 管理対象外です。
+API Key は Source Code に直接記載しません。
 
 ---
 
-### 7.8 clients
+## 9. Database Migration 方針
 
-外部サービスとの HTTP 通信を担当します。
-
-現在:
+DB Schema は Alembic で管理します。
 
 ```text
-backend/app/clients/
-├─ __init__.py
-└─ edinet.py
+SQLAlchemy Model変更
+        ↓
+alembic revision --autogenerate
+        ↓
+Migration内容を確認
+        ↓
+alembic upgrade head
+        ↓
+DB/TablePlusで確認
 ```
 
-Client の基本責務:
+EDINET 用 DB Table は Alembic で追加済みです。
 
-- 外部 API Endpoint 管理
-- Request Parameter / Header 等の構築
-- HTTP 通信
-- Timeout
-- 外部 API の HTTP Error 処理
-- 外部 API Response の取得
-- 秘密情報を漏らさない例外処理
-
-Client に以下を混在させません。
-
-- PostgreSQL 保存
-- SQLAlchemy Query
-- Alembic Migration
-- UI 処理
-- 複雑な Business Logic
-
----
-
-### 7.9 tests
-
-pytest による Backend Test を配置します。
-
-機能追加時は、必要に応じて以下を確認します。
-
-- 正常系
-- Validation
-- Not Found
-- Conflict
-- Filter
-- Sort
-- Pagination
-- CRUD
-- 外部 API Request Parameter
-- 外部 API Error
-- API Key 等の秘密情報漏えい防止
-
-外部 API Client の単体テストでは、
-可能な限り実 API へアクセスせずモックを利用します。
-
----
-
-## 8. FastAPI Entry Point
-
-Backend の Entry Point は以下です。
+主な Migration:
 
 ```text
-backend/app/main.py
+2290170f9497
+add EDINET inventory tables
+
+6fb348a0c9e4
+change EDINET submit datetime timezone
 ```
 
-主な役割:
-
-- `FastAPI()` の生成
-- CORS Middleware
-- Exception Handler 登録
-- Router 登録
-- Root Endpoint
-- Health Check
-
-Frontend は `http://localhost:5173`、
-Backend は `http://localhost:8000` で動作します。
+`submit_date_time` は EDINET の元データに合わせ、
+`timestamp without time zone` としています。
 
 ---
 
-## 9. 現在の User Domain
+## 10. User Domain
 
-現在 BizSC で実装されている主要 DB Domain は `User` です。
+既存の User Domain:
 
-### users Table
+```text
+API Router
+   ↓
+UserService
+   ↓
+UserRepository
+   ↓
+User
+   ↓
+users
+```
+
+### users
 
 ```text
 users
@@ -491,22 +476,11 @@ users
 └─ updated_at
 ```
 
-### Column 概要
-
-| Column | 概要 |
-|---|---|
-| `id` | Primary Key |
-| `email` | Unique / Index |
-| `hashed_password` | Hash 化した Password |
-| `is_active` | User の有効 / 無効 |
-| `created_at` | 作成日時 |
-| `updated_at` | 更新日時 |
-
-Password の平文を DB に保存しません。
+Password 平文は DB に保存しません。
 
 ---
 
-## 10. 現在の User API
+## 11. User API
 
 Base Path:
 
@@ -514,150 +488,112 @@ Base Path:
 /users
 ```
 
-### Create
-
-```http
-POST /users
-```
-
-成功時:
+主な Endpoint:
 
 ```text
-201 Created
-```
-
-### List
-
-```http
-GET /users
-```
-
-Query Parameter:
-
-```text
-search
-is_active
-sort_by
-sort_order
-page
-limit
-```
-
-一覧 API は User 配列に加えて `total` を返します。
-
-### Detail
-
-```http
-GET /users/{user_id}
-```
-
-### Update
-
-```http
-PATCH /users/{user_id}
-```
-
-### Delete
-
-```http
+POST   /users
+GET    /users
+GET    /users/{user_id}
+PATCH  /users/{user_id}
 DELETE /users/{user_id}
 ```
 
-成功時:
-
-```text
-204 No Content
-```
+一覧では search / is_active filter / sort / pagination / total count に対応済みです。
 
 ---
 
-## 11. EDINET External Data Domain
+## 12. EDINET Domain の目的
 
-BizSC では現在、外部データ取得機能として EDINET 対応を開始しています。
-
-EDINET は現時点では DB Domain ではありません。
-
-つまり現在は、
+EDINET 機能の現在方針:
 
 ```text
-EDINET API
-   ↓
-EDINET Client
-   ↓
-JSON取得
+現在上場している企業
+        ×
+現在日から過去10年間の提出日
+        ×
+csvFlag == "1"
 ```
 
-までであり、
+に該当する EDINET 書類を棚卸しし、BizSC の PostgreSQL に Cache します。
 
-```text
-EDINET Model
-EDINET Repository
-EDINET DB Table
-Frontend EDINET画面
-```
+重要:
 
-はまだ実装していません。
+- `docTypeCode` を事前に限定しない
+- `csvFlag == "1"` を対象にする
+- まず書類一覧を棚卸しする
+- CSV ZIP 本体取得は別 Phase
+- いきなり10年分を実行しない
+- 小期間で検証してから対象期間を拡大する
 
 ---
 
-## 12. EDINET API Client
+## 13. EDINET Client
 
-実装ファイル:
+実装:
 
 ```text
 backend/app/clients/edinet.py
 ```
 
-公開:
-
-```text
-backend/app/clients/__init__.py
-```
-
-現在の主要関数:
+### 13.1 書類一覧
 
 ```python
 fetch_document_list(target_date: date)
 ```
 
-目的:
-
-> 指定日の EDINET 提出書類一覧及びメタデータを取得する。
-
-使用 API:
+Endpoint:
 
 ```text
-EDINET API Version 2
 GET https://api.edinet-fsa.go.jp/api/v2/documents.json
 ```
 
-Request:
+Parameter:
 
 ```text
-date=<YYYY-MM-DD>
+date=YYYY-MM-DD
 type=2
 Subscription-Key=<EDINET_API_KEY>
-```
-
-HTTP Client:
-
-```text
-httpx
 ```
 
 Timeout:
 
 ```text
-30秒
+30 seconds
 ```
 
-現在は自動リトライを実装していません。
+自動 Retry は現時点では実装していません。
+
+### 13.2 EDINET Code List
+
+```python
+fetch_listed_sec_codes() -> set[str]
+```
+
+現在上場企業判定:
+
+```text
+上場区分 == "上場"
+AND
+証券コード != 空
+```
+
+証券コードは必ず `str` として扱います。
+
+例:
+
+```text
+13010
+130A0
+137A0
+```
+
+英字を含むため数値変換は禁止します。
 
 ---
 
-## 13. EDINET Client Error 方針
+## 14. EDINET Client Error 方針
 
-現在、EDINET Client では主に以下の Error を分離しています。
+主な Error:
 
 ```text
 EdinetClientError
@@ -667,157 +603,480 @@ EdinetTimeoutError
 EdinetInvalidJsonError
 ```
 
-主な考え方:
+基本方針:
 
-- API Key 未設定を明確にする
-- HTTP Status を呼び出し元で確認可能にする
-- Timeout を区別する
-- JSON でない Response を区別する
-- httpx の Request URL をそのまま Error Message に出さない
-- `Subscription-Key` を含む URL をログへ出さない
-
-EDINET API Key は Query Parameter に含まれるため、
-例外・ログに Request URL をそのまま表示しないことを特に重視します。
+- API Key 未設定を明示
+- HTTP Error を区別
+- Timeout を区別
+- Invalid JSON を区別
+- Request URL 全体を Error Message に出さない
+- Subscription-Key を Error Message / Log に出さない
+- 429 を無限 Retry しない
 
 ---
 
-## 14. EDINET Client Test
+## 15. EDINET Database Domain
 
-現在:
+EDINET は DB Domain まで実装済みです。
+
+```text
+EDINET Client
+      ↓
+EdinetInventoryService
+      ↓
+EdinetInventoryRepository
+      ↓
+┌────────────────────────┐
+│ edinet_documents       │
+│ edinet_inventory_runs  │
+└────────────────────────┘
+```
+
+---
+
+## 16. edinet_documents
+
+Model:
+
+```text
+backend/app/models/edinet_document.py
+```
+
+主な目的:
+
+> 指定提出日の「現在上場企業 × csvFlag=1」に一致する EDINET Document を保存する。
+
+| Column | 概要 |
+|---|---|
+| `id` | Primary Key |
+| `target_date` | EDINET 書類一覧を取得した対象日 |
+| `doc_id` | EDINET docID / Unique |
+| `edinet_code` | EDINET Code |
+| `sec_code` | 証券コード |
+| `filer_name` | 提出者名 |
+| `ordinance_code` | 府令コード |
+| `form_code` | 様式コード |
+| `doc_type_code` | 書類種別コード |
+| `period_start` | 期間開始日 |
+| `period_end` | 期間終了日 |
+| `submit_date_time` | 提出日時 |
+| `doc_description` | 書類説明 |
+| `parent_doc_id` | 親書類ID |
+| `withdrawal_status` | 取下げ状態 |
+| `doc_info_edit_status` | 書類情報修正状態 |
+| `disclosure_status` | 開示状態 |
+| `xbrl_flag` | XBRL flag |
+| `pdf_flag` | PDF flag |
+| `csv_flag` | CSV flag |
+| `legal_status` | Legal status |
+| `created_at` | BizSC 作成日時 |
+| `updated_at` | BizSC 更新日時 |
+
+主な Index / Constraint:
+
+- `doc_id`: Unique + Index
+- `target_date`: Index
+- `sec_code`: Index
+- `doc_type_code`: Index
+- `submit_date_time`: Index
+
+`submit_date_time` は:
+
+```python
+DateTime(timezone=False)
+```
+
+として保存します。
+
+---
+
+## 17. edinet_inventory_runs
+
+Model:
+
+```text
+backend/app/models/edinet_inventory_run.py
+```
+
+目的:
+
+> 各 target_date の最新棚卸し実行状態・件数・Error を管理する。
+
+| Column | 概要 |
+|---|---|
+| `id` | Primary Key |
+| `target_date` | 対象日 / Unique |
+| `status` | processing / completed / failed |
+| `total_count` | EDINET 書類一覧件数 |
+| `listed_match_count` | 現在上場企業に一致した件数 |
+| `csv_flag_count` | csvFlag=1 件数 |
+| `listed_sec_code_count` | 使用した現在上場証券コード数 |
+| `error_message` | 安全化した Error Message |
+| `started_at` | 実行開始日時 |
+| `completed_at` | 完了 / 失敗日時 |
+| `created_at` | Record 作成日時 |
+| `updated_at` | Record 更新日時 |
+
+`target_date` は Unique です。
+
+同じ日を再実行した場合、新しい run 行を増やさず同じ Record を更新します。
+
+---
+
+## 18. EDINET Repository
+
+実装:
+
+```text
+backend/app/repositories/edinet_inventory.py
+```
+
+Class:
+
+```python
+EdinetInventoryRepository
+```
+
+主な Method:
+
+```text
+get_documents_by_target_date
+delete_documents_by_target_date
+add_documents
+get_run_by_target_date
+add_run
+```
+
+Repository では `commit()` を行わず `flush()` までとし、
+Transaction は Service が管理します。
+
+Repository は `completed なら skip` のような Business Logic を持ちません。
+
+---
+
+## 19. EDINET 1日刷新 Service
+
+実装:
+
+```text
+backend/app/services/edinet_inventory.py
+```
+
+Class:
+
+```python
+EdinetInventoryService
+```
+
+公開 Method:
+
+```python
+refresh_one_day(
+    db: Session,
+    target_date: date,
+) -> OneDayInventorySummary
+```
+
+基本フロー:
+
+```text
+target_date の run 取得
+        ↓
+processing に更新
+        ↓
+commit
+        ↓
+最新の上場証券コード取得
+        ↓
+EDINET 書類一覧取得
+        ↓
+Response 検証
+        ↓
+現在上場企業で Filter
+        ↓
+csvFlag == "1" で Filter
+        ↓
+EdinetDocument へ変換
+        ↓
+指定 target_date の既存 documents 削除
+        ↓
+新しい documents 追加
+        ↓
+run を completed に更新
+        ↓
+commit
+```
+
+---
+
+## 20. 再実行 / Refresh 方針
+
+```text
+completed でも再実行可能
+failed でも再実行可能
+processing でも再実行可能
+```
+
+`completed` を Skip Gate にはしません。
+
+同日再実行時:
+
+```text
+既存 target_date documents
+        ↓ DELETE
+新しい対象 documents
+        ↓ INSERT
+```
+
+とし、日単位で置き換えます。
+
+---
+
+## 21. Transaction 方針
+
+### processing 保存
+
+外部 HTTP 通信前に `processing` として一度 `commit()` します。
+
+### Refresh 本体
+
+以下は同じ Transaction:
+
+```text
+既存 documents DELETE
+        ↓
+新 documents INSERT
+        ↓
+run completed UPDATE
+        ↓
+commit
+```
+
+DELETE 後に途中 `commit()` はしません。
+
+### 失敗時
+
+```text
+Exception
+   ↓
+rollback
+   ↓
+run 再取得
+   ↓
+status = failed
+   ↓
+安全な error_message
+   ↓
+commit
+   ↓
+元 Exception を re-raise
+```
+
+刷新途中で失敗した場合、以前の正常な Document を残せる構成です。
+
+---
+
+## 22. EDINET Response Safety
+
+Document List Response は `results` が正常な `list` の場合だけ Refresh を続行します。
+
+正常:
+
+```python
+{"results": [...]}
+```
+
+異常:
+
+```text
+payload が dict ではない
+results key がない
+results が list ではない
+```
+
+正常な `"results": []` は 0 件の日として扱います。
+
+目的は、API異常を空配列と誤認して既存データを削除することを防ぐためです。
+
+---
+
+## 23. EDINET Document 変換
+
+主な Mapping:
+
+```text
+docID              -> doc_id
+edinetCode         -> edinet_code
+secCode            -> sec_code
+filerName          -> filer_name
+ordinanceCode      -> ordinance_code
+formCode           -> form_code
+docTypeCode        -> doc_type_code
+periodStart        -> period_start
+periodEnd          -> period_end
+submitDateTime     -> submit_date_time
+docDescription     -> doc_description
+parentDocID        -> parent_doc_id
+withdrawalStatus   -> withdrawal_status
+docInfoEditStatus  -> doc_info_edit_status
+disclosureStatus   -> disclosure_status
+xbrlFlag           -> xbrl_flag
+pdfFlag            -> pdf_flag
+csvFlag            -> csv_flag
+legalStatus        -> legal_status
+```
+
+`periodStart` / `periodEnd` は `date` に変換します。
+
+`submitDateTime` は timezone を付加せず naive `datetime` として扱います。
+
+---
+
+## 24. EDINET Inventory Summary
+
+```python
+OneDayInventorySummary
+```
+
+Field:
+
+```text
+total_count
+listed_match_count
+csv_flag_count
+doc_type_counts
+```
+
+集計順序:
+
+```text
+全 results
+    ↓
+現在上場 secCode と一致
+    ↓
+csvFlag == "1"
+    ↓
+docTypeCode 集計
+```
+
+---
+
+## 25. 10年間の対象期間
+
+対象期間は、実行日時点から過去10年間の**提出日ベース**です。
+
+開始日計算:
+
+```python
+inventory_start_date(end_date)
+```
+
+2月29日は存在しない年を考慮し 2月28日に補正します。
+
+---
+
+## 26. 複数日 / 10年走査の設計方針
+
+現在の `refresh_one_day()` を基本単位とします。
+
+次の実装予定:
+
+```python
+refresh_date_range(
+    db: Session,
+    start_date: date,
+    end_date: date,
+)
+```
+
+方針:
+
+- まだ未実装
+- いきなり10年走査しない
+- まず3日程度で確認
+- 並列化しない
+- 1日単位 commit を維持
+- Current Listed Code List は範囲処理ごとに1回取得する方向
+- Retry / Rate Limit / 失敗継続は次段階で設計
+
+---
+
+## 27. EDINET Test
+
+主な Test:
 
 ```text
 backend/tests/test_edinet_client.py
+backend/tests/test_edinet_inventory.py
 ```
 
-を配置しています。
+`tests/test_edinet_inventory.py` は現在 7 tests pass を確認済みです。
 
-実 API へアクセスしないテストで、主に以下を確認します。
+主な確認内容:
 
-- 指定日が `YYYY-MM-DD` で送信される
-- `type=2`
-- `Subscription-Key`
-- API Key 未設定
-- HTTP Error
-- 429 時に自動リトライしない
-- Timeout
-- Invalid JSON
-- API Key を例外 Message に含めない
-
-EDINET の実 API 接続確認は単体テストとは分離して行います。
+- 10年前の日付
+- 2月29日
+- 上場企業 Filter
+- csvFlag Filter
+- completed 済みでも再実行
+- 英字入り証券コード `130A0`
+- `submitDateTime` が naive datetime
+- rollback / failed / re-raise
+- 秘密情報を error_message に保存しない
+- 不正な `results` Response を拒否
+- 不正 Response で既存 Documents を削除しない
 
 ---
 
-## 15. EDINET 現在の実装範囲
+## 28. EDINET 実データ確認
 
-現在完了している範囲:
+対象確認日:
 
 ```text
-EDINET API Key 設定
-        ↓
-EDINET Client
-        ↓
-書類一覧API
-        ↓
-指定日のJSON取得
+2026-08-21
 ```
 
-実接続確認では、指定日の書類一覧取得が成功しています。
+1日分の実 DB 保存まで確認済みです。
 
-現在まだ実装していないもの:
+同じ `target_date` を再実行し、
+
+- `edinet_documents` が2倍に増えない
+- 1日分が削除 → 再登録で刷新される
+- `edinet_inventory_runs` が同日で増殖せず1行を更新
+- `status = completed`
+- `error_message = NULL`
+
+を確認済みです。
+
+---
+
+## 29. EDINET 現在未実装
 
 ```text
-現在上場企業の棚卸し
-過去10年分の書類一覧走査
-CSV ZIPダウンロード
-ZIP展開
+複数日 refresh_date_range
+10年一括走査
+失敗日を飛ばして継続
+Retry
+Rate Limit 制御 / Sleep
+Scheduler
+Celery
+Redis
+EDINET API Router
+EDINET Frontend
+CSV ZIP 本体取得
+CSV ZIP 展開
 CSV解析
 XBRL解析
 財務数値抽出
-DBキャッシュ
-SQLAlchemy Model
-Alembic Migration
-EDINET Repository
-EDINET Service
-EDINET Router
-Frontend
-定期取得
+決算短信取得
+TDnet連携
 ```
 
-これらは必要な Phase ごとに順番に設計します。
+必要性が明確になる前に新しい Infrastructure を追加しません。
 
 ---
 
-## 16. EDINET 今後の設計方針
-
-現在確定している対象方針:
-
-```text
-対象企業:
-現在上場している企業
-
-上場判定:
-現在時点の証券コードを基準
-
-対象期間:
-実行日の現在日から過去10年間
-提出日ベース
-
-書類対象:
-docTypeCode を事前限定しない
-
-CSV対象:
-csvFlag == "1"
-```
-
-まず CSV 本体を大量取得せず、
-
-```text
-現在上場企業
-        ↓
-過去10年のEDINET書類一覧
-        ↓
-csvFlag = 1
-        ↓
-docTypeCode別に棚卸し
-```
-
-を行います。
-
-棚卸し完了後に CSV ダウンロード Phase を別途設計します。
-
----
-
-## 17. EDINET データ取得時のアクセス方針
-
-長期間の EDINET API 走査では API への負荷を抑えます。
-
-基本方針:
-
-- いきなり10年間を一括実行しない
-- 小期間で先に動作確認する
-- 大量並列アクセスを行わない
-- 429 Too Many Requests を無限リトライしない
-- API Key をログへ出さない
-- 長時間処理では途中再開方法を先に設計する
-- CSV取得前に対象件数を棚卸しする
-
-外部 API の利用規約・仕様に合わせ、
-アクセス方法は必要に応じて見直します。
-
----
-
-## 18. Frontend 技術構成
-
-Frontend の主な技術は以下です。
-
-- React
-- TypeScript
-- Vite
-- React Router
-- Axios
-- Bootstrap
-
-基本構成:
+## 30. Frontend 技術構成
 
 ```text
 frontend/
@@ -835,67 +1094,20 @@ frontend/
    └─ index.css
 ```
 
----
+主な技術:
 
-## 19. Frontend 各 Directory の責務
+- React
+- TypeScript
+- Vite
+- React Router
+- Axios
+- Bootstrap
 
-### pages
-
-URL 単位の Page Component を配置します。
-
-現在の主要 Page:
-
-```text
-HomePage
-UserListPage
-UserCreatePage
-UserDetailPage
-UserEditPage
-NotFoundPage
-```
-
-### components
-
-複数画面で利用できる共通 UI を配置します。
-
-主な共通 Component:
-
-```text
-Button
-Input
-Card
-Badge
-Loading
-ErrorMessage
-UserForm
-Header
-Sidebar
-Footer
-```
-
-### api
-
-Backend API との通信処理を配置します。
-
-Axios を利用します。
-
-### types
-
-Frontend で利用する TypeScript Type を管理します。
-
-### layouts
-
-複数 Page 共通の画面構造を管理します。
-
-### routes
-
-React Router による URL と Page の対応を管理します。
+EDINET Frontend はまだ実装していません。
 
 ---
 
-## 20. Frontend Route
-
-現在の主な Route:
+## 31. Frontend Route
 
 | URL | Page |
 |---|---|
@@ -906,321 +1118,89 @@ React Router による URL と Page の対応を管理します。
 | `/users/:userId/edit` | UserEditPage |
 | `*` | NotFoundPage |
 
-EDINET 用 Frontend Route は現在ありません。
-
 ---
 
-## 21. UI / CSS 方針
+## 32. UI / CSS 方針
 
-BizSC の UI は Bootstrap を基本とします。
-
-優先順位:
+Bootstrap を基本とします。
 
 ```text
-1. Bootstrap 標準 Component / Class
+1. Bootstrap Component
 2. Bootstrap Grid
 3. Bootstrap Utility
 4. 共通 React Component
 5. 必要な場合のみ独自 CSS
 ```
 
-独自 CSS を大量に作ることは避けます。
-
 ---
 
-## 22. Frontend State の基本方針
+## 33. Build / Test
 
-現時点では React 標準の State 管理を利用します。
-
-主に:
-
-```text
-useState
-useEffect
-```
-
-大規模な Global State Library は導入していません。
-
-理由なく Redux 等を追加しません。
-
----
-
-## 23. Frontend と Backend のデータフロー
-
-User 一覧を例にすると、
-
-```text
-UserListPage
-   ↓
-frontend/src/api
-   ↓ Axios
-GET /users
-   ↓
-FastAPI Router
-   ↓
-UserService
-   ↓
-UserRepository
-   ↓
-SQLAlchemy
-   ↓
-PostgreSQL
-```
-
-EDINET は現時点でこの API / Frontend Flow には接続していません。
-
-現在:
-
-```text
-Backend
-   ↓
-EDINET Client
-   ↓
-EDINET API
-```
-
-までです。
-
----
-
-## 24. Database Migration 方針
-
-Database Schema の変更には Alembic を利用します。
-
-基本:
-
-```text
-SQLAlchemy Model 変更
-       ↓
-Alembic Migration 作成
-       ↓
-Migration 内容確認
-       ↓
-Database へ適用
-```
-
-EDINET データを将来 DB キャッシュする場合も、
-Table 構造を設計した後に Alembic Migration を作成します。
-
-EDINET Client を追加しただけでは DB Schema を変更しません。
-
----
-
-## 25. 新しい Domain を追加するときの基本構成
-
-例として `Customer` を追加する場合:
-
-```text
-backend/app/models/customer.py
-backend/app/schemas/customer.py
-backend/app/repositories/customer.py
-backend/app/services/customer.py
-backend/app/api/customers.py
-backend/tests/...
-```
-
-外部サービス通信が必要な場合は、必要に応じて:
-
-```text
-backend/app/clients/<external_service>.py
-```
-
-を検討します。
-
-ただし、すべての Domain に必ず同じ数の File を作る必要はありません。
-
----
-
-## 26. 新機能追加時の設計原則
-
-### 外部 API と通信するか
-
-必要な場合:
-
-- Client
-
-を検討します。
-
-### DB に保存するデータか
-
-保存する場合:
-
-- Model
-- Migration
-
-を検討します。
-
-### API Request / Response が必要か
-
-必要な場合:
-
-- Schema
-- API Router
-
-を検討します。
-
-### DB Access が必要か
-
-必要な場合:
-
-- Repository
-
-へ配置します。
-
-### 業務判断が必要か
-
-必要な場合:
-
-- Service
-
-へ配置します。
-
-### URL 単位の画面か
-
-必要な場合:
-
-- Page
-- Route
-
-を検討します。
-
-### 複数画面で再利用する UI か
-
-該当する場合:
-
-- Component
-
-へ分離します。
-
----
-
-## 27. 既存アーキテクチャを変更する場合の注意
-
-次の変更は影響範囲が大きいため、
-局所的な変更と同じ感覚で実施しません。
-
-- Backend Layer 構成変更
-- Client 層の責務変更
-- API Base Path 変更
-- DB Connection 方針変更
-- ORM 変更
-- Authentication 基盤導入
-- Global State Library 導入
-- React Router 構成変更
-- Bootstrap 以外の UI Framework 導入
-- Docker Service 構成変更
-
-必要性と影響範囲を整理してから変更します。
-
----
-
-## 28. Build / Test
-
-### Frontend lint
-
-```powershell
-docker compose exec frontend npm run lint
-```
-
-### Frontend build
-
-```powershell
-docker compose exec frontend npm run build
-```
-
-### Backend test
+Backend 全体:
 
 ```powershell
 docker compose run --rm backend pytest -v
 ```
 
-### EDINET Client test
+EDINET Client:
 
 ```powershell
 docker compose run --rm backend pytest -v tests/test_edinet_client.py
 ```
 
-変更内容に応じて必要な確認を行います。
+EDINET Inventory:
+
+```powershell
+docker compose run --rm backend pytest -v tests/test_edinet_inventory.py
+```
+
+Frontend lint:
+
+```powershell
+docker compose exec frontend npm run lint
+```
+
+Frontend build:
+
+```powershell
+docker compose exec frontend npm run build
+```
 
 ---
 
-## 29. Docker の基本コマンド
+## 34. TablePlus
 
-起動:
+Docker PostgreSQL の確認には TablePlus を利用します。
 
-```powershell
-docker compose up -d
+```text
+Host: 127.0.0.1
+Port: 5432
+Database: bizsc
+User: bizsc
 ```
 
-状態確認:
-
-```powershell
-docker compose ps
-```
-
-Backend Container で Command 実行:
-
-```powershell
-docker compose exec backend <command>
-```
-
-Frontend Container で Command 実行:
-
-```powershell
-docker compose exec frontend <command>
-```
-
-Dependency や Dockerfile を変更していない通常の Source Code 修正では、
-原則として毎回 `docker compose build` は行いません。
+接続不良時は Windows 側 PostgreSQL Service が `5432` に混在していないかも確認します。
 
 ---
 
-## 30. Documentation 構成
+## 35. Documentation
 
-BizSC の Documentation は `docs/` で管理します。
-
-主な資料:
+主な Document:
 
 ```text
 architecture.md
+handover_phase.md
+project-overview.md
 development-guidelines.md
-project-overview/
-handover_phase/
+EDINET Phase Documents
 ```
 
-EDINET 機能では Phase ごとの指示書も利用します。
-
-例:
-
-```text
-01-edinet-api-fetch.md
-02-edinet-document-inventory.md
-handover_edinet_phase.md
-```
-
-### architecture.md
-
-現在のシステム構成と設計原則。
-
-### development-guidelines.md
-
-開発を進める際の共通ルール。
-
-### handover 系資料
-
-別 Chat へ作業を引き継ぐ際の、
-その時点の具体的な進捗と次の作業。
-
-### 機能 Phase md
-
-特定機能を小さな Step に分けて実装するための指示書。
+`architecture.md` は現在構成と設計原則、
+`handover_phase.md` は具体的進捗と次の作業を担当します。
 
 ---
 
-## 31. Git / GitHub 方針
-
-コード確認が必要な場合は、
-現在のコードを推測せず最新状態を確認します。
+## 36. Git / GitHub 方針
 
 Repository:
 
@@ -1228,54 +1208,102 @@ Repository:
 https://github.com/eswm223-oss/bizsc
 ```
 
-Commit / Push は、小さな変更のたびではなく、
-機能単位または区切りのよい地点で行います。
+基本方針:
 
-API Key や `.env` を Git へ Commit しません。
+- 現在コードを推測しない
+- 必要時は GitHub 最新状態を確認
+- 小さな変更ごとに Commit / Push を強制しない
+- 機能単位・区切りの良い地点で Commit
+- `.env` / API Key は Commit しない
+- Migration は Git 管理する
 
 ---
 
-## 32. Current Architecture Status
-
-この architecture.md 作成時点では、
+## 37. 開発進行ルール
 
 ```text
-Web Application 基盤
-User 管理機能
-External API Client 層
+大きな機能
+↓
+Phase
+↓
+Step
+↓
+実装
+↓
+Test
+↓
+確認
+↓
+次Step
+```
+
+重要:
+
+- 1 Step を小さくする
+- 既存 Code を確認してから変更
+- 必要性がない Library を追加しない
+- Error 原因を推測だけで確定しない
+- 実データは小範囲で確認してから拡大
+- 外部 API 負荷を意識
+- Migration は内容確認後に適用
+- Repository / Service / Client の責務を混在させない
+- 新 Chat 移行時は Handover Document を作成
+
+---
+
+## 38. Current Architecture Status
+
+2026-09-06 時点:
+
+```text
+Base Web Application
+        ↓
+User CRUD
+        ↓
 EDINET API Client
-EDINET 書類一覧取得
+        ↓
+EDINET Code List
+        ↓
+現在上場企業判定
+        ↓
+1日棚卸し
+        ↓
+EDINET DB Models
+        ↓
+Alembic Migration
+        ↓
+EDINET Repository
+        ↓
+EdinetInventoryService.refresh_one_day
+        ↓
+実DB保存
+        ↓
+同日再実行 / Refresh確認
+        ↓
+完了
 ```
 
-まで構築されています。
+EDINET Phase 02 は、**1日単位の安全な棚卸し・DB Refresh まで完了**しています。
 
-EDINET については現在、
+次の予定は:
 
 ```text
-Phase 01:
-EDINET API 接続・書類一覧取得
-→ 完了
-
-Phase 02:
-現在上場企業 × 過去10年 × csvFlag=1
-書類棚卸し
-→ 次に実施
+refresh_date_range
 ```
 
-の状態です。
+による複数日順次処理です。
 
-まだ EDINET データを PostgreSQL へ保存する設計には進んでいません。
+Step 7-1 の実装指示は整理済みですが、
+この architecture.md 作成時点では未実装です。
 
 ---
 
-## 33. Architecture の基本方針まとめ
-
-BizSC の基本方針:
+## 39. Architecture 基本原則まとめ
 
 ```text
-Docker Compose で開発環境を統一する
+Docker Compose を開発環境の基準にする
 
-Backend のDB処理は
+Backend:
 API
 ↓
 Service
@@ -1285,39 +1313,45 @@ Repository
 Model
 ↓
 PostgreSQL
-で責務を分離する
 
-外部APIとの通信は
+External API:
+Service
+↓
 Client
-に分離する
+↓
+External Service
 
-Repository に外部HTTP通信を混在させない
+Client と Repository を混在させない
 
-Database Schema は Alembic で管理する
+Business Logic は Service に置く
 
-Frontend は
-pages
-components
-api
-types
-layouts
-routes
-に責務を分離する
+Transaction 境界は Service で管理する
 
-API 通信は Axios に集約する
+DB Schema は Alembic で管理する
 
-UI は Bootstrap を基本とする
+API Key 等の秘密情報を Source / Log / Error に出さない
 
-秘密情報は .env で管理する
+証券コードは str として扱う
 
-既存動作を壊さず小さな単位で変更する
+EDINET submitDateTime に存在しない timezone を推測しない
 
-新しい Library や Architecture は
-具体的な必要性が出た場合にのみ導入する
+completed でも EDINET 1日棚卸しを再実行可能にする
 
-大量データ・外部API処理は
-いきなり全量実行せず
-小さい範囲で検証してから拡大する
+日単位 Refresh は
+DELETE + INSERT + completed
+を1 Transaction とする
+
+外部 API 異常を「0件」と誤認して既存データを削除しない
+
+大量処理はいきなり全量実行しない
+
+まず小期間で実データ検証し、
+安全性を確認してから10年へ拡大する
+
+必要性が明確になるまで
+Scheduler / Celery / Redis / 新しい Framework を導入しない
+
+既存動作を壊さず、小さな Step で進める
 ```
 
 以上。
