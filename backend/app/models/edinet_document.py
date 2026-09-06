@@ -56,7 +56,7 @@ class EdinetDocument(Base):
         nullable=True,
     )
     submit_date_time: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
+        DateTime(timezone=False),
         index=True,
         nullable=True,
     )
