@@ -152,27 +152,27 @@ def test_parse_listed_sec_codes_keeps_strings_and_filters_rows() -> None:
     zip_bytes = _code_list_zip_bytes(
         _code_list_csv(
             [
-                ("上場", "7203"),
-                ("上場", "7203"),
-                ("上場", "0123"),
-                ("非上場", "9999"),
+                ("上場", "72030"),
+                ("上場", "72030"),
+                ("上場", "01230"),
+                ("非上場", "99990"),
                 ("上場", ""),
                 ("上場", "   "),
-                (" 上場 ", "1301"),
+                (" 上場 ", "13010"),
             ]
         )
     )
 
     sec_codes = _parse_listed_sec_codes_from_zip(zip_bytes)
 
-    assert sec_codes == {"7203", "0123", "1301"}
+    assert sec_codes == {"72030", "01230", "13010"}
     assert all(isinstance(sec_code, str) for sec_code in sec_codes)
 
 
 @patch("app.clients.edinet.httpx.get")
 def test_fetch_listed_sec_codes_downloads_official_zip(mock_get) -> None:
     zip_bytes = _code_list_zip_bytes(
-        _code_list_csv([("上場", "7203"), ("非上場", "1111")])
+        _code_list_csv([("上場", "72030"), ("非上場", "11110")])
     )
     request = httpx.Request("GET", EDINET_CODE_LIST_URL)
     mock_get.return_value = httpx.Response(
@@ -187,7 +187,7 @@ def test_fetch_listed_sec_codes_downloads_official_zip(mock_get) -> None:
     args, kwargs = mock_get.call_args
     assert args[0] == EDINET_CODE_LIST_URL
     assert "params" not in kwargs or "Subscription-Key" not in kwargs.get("params", {})
-    assert sec_codes == {"7203"}
+    assert sec_codes == {"72030"}
 
 
 @patch("app.clients.edinet.httpx.get")
