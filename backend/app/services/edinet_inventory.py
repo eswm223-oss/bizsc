@@ -163,12 +163,12 @@ class EdinetInventoryService:
 
 
 def _document_list_results(payload: Any) -> list[Any]:
-    if not isinstance(payload, dict):
-        return []
-    results = payload.get("results")
-    if isinstance(results, list):
-        return results
-    return []
+    if not isinstance(payload, dict) or "results" not in payload:
+        raise ValueError("EDINET document list response has invalid results")
+    results = payload["results"]
+    if not isinstance(results, list):
+        raise ValueError("EDINET document list response has invalid results")
+    return results
 
 
 def _is_listed_csv_document(

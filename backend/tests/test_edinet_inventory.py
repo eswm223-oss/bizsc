@@ -162,3 +162,26 @@ def test_refresh_one_day_marks_failed_and_reraises(
     assert "secret-should-not-be-saved" not in (run.error_message or "")
     db.commit.assert_called()
     repository.delete_documents_by_target_date.assert_not_called()
+
+
+@patch("app.services.edinet_inventory.fetch_document_list")
+@patch("app.services.edinet_inventory.fetch_listed_sec_codes")
+def test_refresh_one_day_rejects_payload_without_results_list(
+    mock_fetch_listed_sec_codes,
+    mock_fetch_document_list,
+) -> None:
+    run = _completed_run()
+    repository = MagicMock()
+    repository.get_run_by_target_date.return_value = run
+    mock_fetch_listed_sec_codes.return_value = {"130A0"}
+    mock_fetch_document_list.return_value = {"metadata": {"status": "200"}}
+    db = MagicMock()
+    service = EdinetInventoryService(repository)
+
+    with pytest.raises(ValueError, match="EDINET document list response has invalid results"):
+        service.refresh_one_day(db, TARGET_DATE)
+
+    db.rollback.assert_called()
+    assert run.status == "failed"
+    repository.delete_documents_by_target_date.assert_not_called()
+    repository.add_documents.assert_not_called()
