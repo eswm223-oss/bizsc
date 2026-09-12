@@ -1,6 +1,6 @@
 from collections import Counter
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -82,6 +82,28 @@ class EdinetInventoryService:
         target_date: date,
     ) -> OneDayInventorySummary:
         return self._refresh_one_day(db, target_date)
+
+    def refresh_date_range(
+        self,
+        db: Session,
+        start_date: date,
+        end_date: date,
+    ) -> list[tuple[date, OneDayInventorySummary]]:
+        if start_date > end_date:
+            raise ValueError("start_date must be on or before end_date")
+
+        listed_sec_codes = fetch_listed_sec_codes()
+        summaries: list[tuple[date, OneDayInventorySummary]] = []
+        target_date = start_date
+        while target_date <= end_date:
+            summary = self._refresh_one_day(
+                db,
+                target_date,
+                listed_sec_codes,
+            )
+            summaries.append((target_date, summary))
+            target_date += timedelta(days=1)
+        return summaries
 
     def _refresh_one_day(
         self,

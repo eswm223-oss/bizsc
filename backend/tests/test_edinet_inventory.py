@@ -185,3 +185,77 @@ def test_refresh_one_day_rejects_payload_without_results_list(
     assert run.status == "failed"
     repository.delete_documents_by_target_date.assert_not_called()
     repository.add_documents.assert_not_called()
+
+
+@patch("app.services.edinet_inventory.fetch_listed_sec_codes")
+def test_refresh_date_range_rejects_start_after_end_before_fetch(
+    mock_fetch_listed_sec_codes,
+) -> None:
+    repository = MagicMock()
+    db = MagicMock()
+    service = EdinetInventoryService(repository)
+
+    with pytest.raises(ValueError, match="start_date must be on or before end_date"):
+        service.refresh_date_range(
+            db,
+            date(2026, 8, 22),
+            date(2026, 8, 21),
+        )
+
+    mock_fetch_listed_sec_codes.assert_not_called()
+
+
+@patch("app.services.edinet_inventory.fetch_document_list")
+@patch("app.services.edinet_inventory.fetch_listed_sec_codes")
+def test_refresh_date_range_fetches_listed_sec_codes_once(
+    mock_fetch_listed_sec_codes,
+    mock_fetch_document_list,
+) -> None:
+    run = _completed_run()
+    repository = MagicMock()
+    repository.get_run_by_target_date.return_value = run
+    mock_fetch_listed_sec_codes.return_value = {"130A0"}
+    mock_fetch_document_list.return_value = {"results": []}
+    db = MagicMock()
+    service = EdinetInventoryService(repository)
+
+    summaries = service.refresh_date_range(
+        db,
+        date(2026, 8, 21),
+        date(2026, 8, 23),
+    )
+
+    assert mock_fetch_listed_sec_codes.call_count == 1
+    assert mock_fetch_document_list.call_count == 3
+    assert [target_date for target_date, _summary in summaries] == [
+        date(2026, 8, 21),
+        date(2026, 8, 22),
+        date(2026, 8, 23),
+    ]
+
+
+@patch("app.services.edinet_inventory.fetch_document_list")
+@patch("app.services.edinet_inventory.fetch_listed_sec_codes")
+def test_refresh_date_range_stops_when_one_day_raises(
+    mock_fetch_listed_sec_codes,
+    mock_fetch_document_list,
+) -> None:
+    run = _completed_run()
+    repository = MagicMock()
+    repository.get_run_by_target_date.return_value = run
+    mock_fetch_listed_sec_codes.return_value = {"130A0"}
+    mock_fetch_document_list.side_effect = [
+        {"results": []},
+        RuntimeError("day failed"),
+    ]
+    db = MagicMock()
+    service = EdinetInventoryService(repository)
+
+    with pytest.raises(RuntimeError, match="day failed"):
+        service.refresh_date_range(
+            db,
+            date(2026, 8, 21),
+            date(2026, 8, 23),
+        )
+
+    assert mock_fetch_document_list.call_count == 2
