@@ -187,9 +187,11 @@ def test_refresh_one_day_rejects_payload_without_results_list(
     repository.add_documents.assert_not_called()
 
 
+@patch("app.services.edinet_inventory.fetch_document_list")
 @patch("app.services.edinet_inventory.fetch_listed_sec_codes")
 def test_refresh_date_range_rejects_start_after_end_before_fetch(
     mock_fetch_listed_sec_codes,
+    mock_fetch_document_list,
 ) -> None:
     repository = MagicMock()
     db = MagicMock()
@@ -203,6 +205,7 @@ def test_refresh_date_range_rejects_start_after_end_before_fetch(
         )
 
     mock_fetch_listed_sec_codes.assert_not_called()
+    mock_fetch_document_list.assert_not_called()
 
 
 @patch("app.services.edinet_inventory.fetch_document_list")
