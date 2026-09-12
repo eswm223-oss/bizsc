@@ -59,6 +59,40 @@ def test_summarize_one_day_inventory_empty_results() -> None:
     assert summary.doc_type_counts == {}
 
 
+def test_summarize_one_day_inventory_excludes_document_info_edit_records() -> None:
+    listed_sec_codes = {"130A0"}
+    results = [
+        {
+            "docID": "S100A001",
+            "secCode": "130A0",
+            "csvFlag": "1",
+            "docTypeCode": "120",
+            "docInfoEditStatus": "2",
+        },
+        {
+            "docID": "S100A001",
+            "secCode": "130A0",
+            "csvFlag": "1",
+            "docTypeCode": "120",
+            "docInfoEditStatus": "1",
+        },
+        {
+            "docID": "S100A002",
+            "secCode": "130A0",
+            "csvFlag": "1",
+            "docTypeCode": "160",
+            "docInfoEditStatus": "0",
+        },
+    ]
+
+    summary = summarize_one_day_inventory(results, listed_sec_codes)
+
+    assert summary.total_count == 3
+    assert summary.listed_match_count == 3
+    assert summary.csv_flag_count == 2
+    assert summary.doc_type_counts == {"120": 1, "160": 1}
+
+
 def _completed_run() -> EdinetInventoryRun:
     return EdinetInventoryRun(
         target_date=TARGET_DATE,
@@ -136,6 +170,56 @@ def test_refresh_one_day_reruns_completed_and_saves_filtered_documents(
     assert saved.submit_date_time.tzinfo is None
     assert saved.period_start == date(2025, 4, 1)
     assert run.listed_sec_code_count == 1
+
+
+@patch("app.services.edinet_inventory.fetch_document_list")
+@patch("app.services.edinet_inventory.fetch_listed_sec_codes")
+def test_refresh_one_day_excludes_document_info_edit_records(
+    mock_fetch_listed_sec_codes,
+    mock_fetch_document_list,
+) -> None:
+    run = _completed_run()
+    repository = MagicMock()
+    repository.get_run_by_target_date.return_value = run
+    mock_fetch_listed_sec_codes.return_value = {"130A0"}
+    mock_fetch_document_list.return_value = {
+        "results": [
+            {
+                "docID": "S100A001",
+                "secCode": "130A0",
+                "csvFlag": "1",
+                "docTypeCode": "120",
+                "docInfoEditStatus": "2",
+            },
+            {
+                "docID": "S100A001",
+                "secCode": "130A0",
+                "csvFlag": "1",
+                "docTypeCode": "120",
+                "docInfoEditStatus": "1",
+            },
+            {
+                "docID": "S100A002",
+                "secCode": "130A0",
+                "csvFlag": "1",
+                "docTypeCode": "160",
+                "docInfoEditStatus": "0",
+            },
+        ]
+    }
+    db = MagicMock()
+    service = EdinetInventoryService(repository)
+
+    summary = service.refresh_one_day(db, TARGET_DATE)
+
+    added_documents = repository.add_documents.call_args.args[1]
+    saved_doc_ids = [document.doc_id for document in added_documents]
+    saved_statuses = [document.doc_info_edit_status for document in added_documents]
+    assert saved_doc_ids == ["S100A001", "S100A002"]
+    assert saved_statuses == ["2", "0"]
+    assert summary.csv_flag_count == len(added_documents)
+    assert summary.csv_flag_count == 2
+    assert summary.listed_match_count == 3
 
 
 @patch("app.services.edinet_inventory.fetch_document_list")

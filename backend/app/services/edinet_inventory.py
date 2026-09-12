@@ -42,7 +42,7 @@ def summarize_one_day_inventory(
     csv_documents = [
         document
         for document in listed_matches
-        if isinstance(document, dict) and document.get("csvFlag") == "1"
+        if _is_listed_csv_document(document, listed_sec_codes)
     ]
     doc_type_counts = Counter(
         _doc_type_code(document) for document in csv_documents
@@ -211,7 +211,12 @@ def _is_listed_csv_document(
     return (
         _sec_code_matches_listed(document, listed_sec_codes)
         and document.get("csvFlag") == "1"
+        and not _is_document_info_edit_record(document)
     )
+
+
+def _is_document_info_edit_record(document: dict[str, Any]) -> bool:
+    return document.get("docInfoEditStatus") == "1"
 
 
 def _to_edinet_document(
