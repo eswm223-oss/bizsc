@@ -81,9 +81,18 @@ class EdinetInventoryService:
         db: Session,
         target_date: date,
     ) -> OneDayInventorySummary:
+        return self._refresh_one_day(db, target_date)
+
+    def _refresh_one_day(
+        self,
+        db: Session,
+        target_date: date,
+        listed_sec_codes: set[str] | None = None,
+    ) -> OneDayInventorySummary:
         self._mark_run_processing(db, target_date)
         try:
-            listed_sec_codes = fetch_listed_sec_codes()
+            if listed_sec_codes is None:
+                listed_sec_codes = fetch_listed_sec_codes()
             payload = fetch_document_list(target_date)
             results = _document_list_results(payload)
             summary = summarize_one_day_inventory(results, listed_sec_codes)
