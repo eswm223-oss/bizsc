@@ -10,3 +10,20 @@ docs/architecture.md
 「前回の続きです。この内容を前提に進めてください。」
 
 と伝えていただければ、そこから自然に再開できます。
+
+
+前回の続きです。この内容を前提に進めてください。
+
+
+
+
+
+別チャットから引継ぎです。下記資料を確認し誘導をお願いいたします。
+
+https://github.com/eswm223-oss/bizsc/tree/main/docs
+
+・architecture.md
+
+・handover_phase.md
+
+・project-overview.md

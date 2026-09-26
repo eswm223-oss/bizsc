@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     db_password: str
 
     edinet_api_key: Optional[str] = None # str | Noneと同じ意味
+    jquants_api_key: Optional[str] = None
 
     @property
     def database_url(self) -> str:
