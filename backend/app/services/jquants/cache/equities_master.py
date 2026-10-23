@@ -39,3 +39,4 @@ def cache_equities_master(fromDate: date, toDate: date):
                 product_category=company["ProdCat"],
             )
             service.createOrUpdate(db, data)
+    db.close()
