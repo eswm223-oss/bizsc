@@ -1,5 +1,3 @@
-import datetime
-
 from sqlalchemy.orm import Session
 
 from backend.app.models import JQuantsListedIssue
@@ -15,14 +13,9 @@ class equities_master_service:
     ) -> JQuantsListedIssue | None:
         if data is None:
             return None
-        dateStamp = datetime.datetime.now()
 
         # id生成
-        data.id = data.code + "-" + data.date.strftime("%Y%m%d")
-
-        # 登録日時、更新日
-        data.created_at = dateStamp
-        data.updated_at = data.updated_at if data.updated_at is None else dateStamp
+        data.id = data.code
 
         return self.repository.createOrUpdate(db, data)
 
