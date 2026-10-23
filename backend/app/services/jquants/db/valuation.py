@@ -1,7 +1,6 @@
+from app.models import JQuantsValuation
+from app.repositories.valuation import JQuantsValuationRepository
 from sqlalchemy.orm import Session
-
-from backend.app.models import JQuantsValuation
-from backend.app.repositories.valuation import JQuantsValuationRepository
 
 
 class valuation_service:
@@ -13,7 +12,10 @@ class valuation_service:
     ) -> JQuantsValuation | None:
         if data is None:
             return None
+
+        # id生成
         data.id = data.code + "-" + data.date.strftime("%Y%m%d")
+
         return self.repository.createOrUpdate(db, data)
 
     def getByCode(self, db: Session, Code: str) -> list[JQuantsValuation] | None:

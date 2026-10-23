@@ -1,7 +1,6 @@
+from app.models import JQuantsDailyQuote
+from app.repositories.daily_quote import JQuantsDailyQuoteRepository
 from sqlalchemy.orm import Session
-
-from backend.app.models import JQuantsDailyQuote
-from backend.app.repositories.daily_quote import JQuantsDailyQuoteRepository
 
 
 class daily_quote_service:
@@ -13,7 +12,10 @@ class daily_quote_service:
     ) -> JQuantsDailyQuote | None:
         if data is None:
             return None
+
+        # id生成
         data.id = data.code + "-" + data.date.strftime("%Y%m%d")
+
         return self.repository.createOrUpdate(db, data)
 
     def getByCode(self, db: Session, Code: str) -> list[JQuantsDailyQuote] | None:

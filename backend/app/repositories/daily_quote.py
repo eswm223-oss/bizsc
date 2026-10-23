@@ -20,16 +20,11 @@ class JQuantsDailyQuoteRepository:
 
     def create(self, db: Session, data: JQuantsDailyQuote) -> JQuantsDailyQuote:
         db.add(data)
-        db.commit()
-        db.refresh(data)
         return data
 
     def createOrUpdate(self, db: Session, data: JQuantsDailyQuote) -> JQuantsDailyQuote:
         source = db.merge(data)
-        db.commit()
-        db.refresh(source)
         return source
 
     def delete(self, db: Session, data: JQuantsDailyQuote) -> None:
         db.delete(data)
-        db.commit()

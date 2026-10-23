@@ -1,7 +1,6 @@
+from app.models import JQuantsListedIssue
+from app.repositories.equities_master import JQuantsListedIssueRepository
 from sqlalchemy.orm import Session
-
-from backend.app.models import JQuantsListedIssue
-from backend.app.repositories.equities_master import JQuantsListedIssueRepository
 
 
 class equities_master_service:

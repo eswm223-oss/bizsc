@@ -19,110 +19,110 @@ class JQuantsDailyQuote(Base):
     # DB内部ID（Code-Date）
     id: Mapped[str] = mapped_column(String(20), primary_key=True)
 
-    # Date：日付（YYYY-MM-DD）
+    # Date:日付（YYYY-MM-DD）
     date: Mapped[date] = mapped_column(
         Date,
         index=True,
         nullable=False,
     )
 
-    # Code：銘柄コード（5桁）
+    # Code:銘柄コード（5桁）
     code: Mapped[str] = mapped_column(
         String(10),
         index=True,
         nullable=False,
     )
 
-    # O：始値（調整前・円単位）
+    # O:始値（調整前・円単位）
     open: Mapped[Decimal | None] = mapped_column(
         Numeric,
         nullable=True,
     )
 
-    # H：高値（調整前・円単位）
+    # H:高値（調整前・円単位）
     high: Mapped[Decimal | None] = mapped_column(
         Numeric,
         nullable=True,
     )
 
-    # L：安値（調整前・円単位）
+    # L:安値（調整前・円単位）
     low: Mapped[Decimal | None] = mapped_column(
         Numeric,
         nullable=True,
     )
 
-    # C：終値（調整前・円単位）
+    # C:終値（調整前・円単位）
     close: Mapped[Decimal | None] = mapped_column(
         Numeric,
         nullable=True,
     )
 
-    # UL：日通ストップ高フラグ
-    # 0：ストップ高以外 / 1：ストップ高
+    # UL:日通ストップ高フラグ
+    # 0:ストップ高以外 / 1:ストップ高
     upper_limit: Mapped[str | None] = mapped_column(
         String(1),
         nullable=True,
     )
 
-    # LL：日通ストップ安フラグ
-    # 0：ストップ安以外 / 1：ストップ安
+    # LL:日通ストップ安フラグ
+    # 0:ストップ安以外 / 1:ストップ安
     lower_limit: Mapped[str | None] = mapped_column(
         String(1),
         nullable=True,
     )
 
-    # Vo：取引高（調整前）
+    # Vo:取引高（調整前）
     # 普通株式は株数、ETF・REIT等は口数
     volume: Mapped[Decimal | None] = mapped_column(
         Numeric,
         nullable=True,
     )
 
-    # Va：取引代金（円単位）
+    # Va:取引代金（円単位）
     value: Mapped[Decimal | None] = mapped_column(
         Numeric,
         nullable=True,
     )
 
-    # AdjFactor：調整係数
-    # 例：株式分割1:2の場合、権利落ち日に0.5
+    # AdjFactor:調整係数
+    # 例:株式分割1:2の場合、権利落ち日に0.5
     adjustment_factor: Mapped[Decimal | None] = mapped_column(
         Numeric,
         nullable=True,
     )
 
-    # AdjO：調整済み始値
+    # AdjO:調整済み始値
     adjusted_open: Mapped[Decimal | None] = mapped_column(
         Numeric,
         nullable=True,
     )
 
-    # AdjH：調整済み高値
+    # AdjH:調整済み高値
     adjusted_high: Mapped[Decimal | None] = mapped_column(
         Numeric,
         nullable=True,
     )
 
-    # AdjL：調整済み安値
+    # AdjL:調整済み安値
     adjusted_low: Mapped[Decimal | None] = mapped_column(
         Numeric,
         nullable=True,
     )
 
-    # AdjC：調整済み終値
+    # AdjC:調整済み終値
     adjusted_close: Mapped[Decimal | None] = mapped_column(
         Numeric,
         nullable=True,
     )
 
-    # AdjVo：調整済み取引高
+    # AdjVo:調整済み取引高
     adjusted_volume: Mapped[Decimal | None] = mapped_column(
         Numeric,
         nullable=True,
     )
 
-    # ExRT：権利落種類
-    # 1：株式分割 / 2：株式併合 / 3：ライツイシュー
+    # ExRT:権利落種類
+    # 1:株式分割 / 2:株式併合 / 3:ライツイシュー
     ex_rights_type: Mapped[str | None] = mapped_column(
         String(10),
         nullable=True,

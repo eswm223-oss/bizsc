@@ -48,18 +48,13 @@ class JQuantsListedIssueRepository:
 
     def create(self, db: Session, data: JQuantsListedIssue) -> JQuantsListedIssue:
         db.add(data)
-        db.commit()
-        db.refresh(data)
         return data
 
     def createOrUpdate(
         self, db: Session, data: JQuantsListedIssue
     ) -> JQuantsListedIssue:
         source = db.merge(data)
-        db.commit()
-        db.refresh(source)
         return source
 
     def delete(self, db: Session, data: JQuantsListedIssue) -> None:
         db.delete(data)
-        db.commit()
