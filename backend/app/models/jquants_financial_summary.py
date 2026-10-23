@@ -1,23 +1,25 @@
 from datetime import date, datetime
 from decimal import Decimal
 
+from app.db.base import Base
 from sqlalchemy import Date, DateTime, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
-
-from app.db.base import Base
 
 
 class JQuantsFinancialSummary(Base):
     __tablename__ = "jq_financial_summaries"
     __table_args__ = (
         UniqueConstraint(
-            "disclosure_number",
-            name="uq_jq_financial_summaries_disclosure_number",
+            "code",
+            "current_period_end",
+            "current_period_type",
+            "document_type",
+            name="uq_jq_financial_summaries_period",
         ),
     )
 
-    # DB内部ID
-    id: Mapped[int] = mapped_column(primary_key=True)
+    # DB内部ID（Code-Date）
+    id: Mapped[str] = mapped_column(String(70), primary_key=True)
 
     # DiscDate：開示日
     disclosure_date: Mapped[date] = mapped_column(

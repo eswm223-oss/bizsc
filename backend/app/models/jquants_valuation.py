@@ -1,24 +1,23 @@
 from datetime import date, datetime
 from decimal import Decimal
 
+from app.db.base import Base
 from sqlalchemy import Date, DateTime, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
-
-from app.db.base import Base
 
 
 class JQuantsValuation(Base):
     __tablename__ = "jq_valuations"
     __table_args__ = (
         UniqueConstraint(
-            "date",
             "code",
-            name="uq_jq_valuations_date_code",
+            "date",
+            name="uq_jq_valuations_code_date",
         ),
     )
 
-    # DB内部ID
-    id: Mapped[int] = mapped_column(primary_key=True)
+    # DB内部ID（Code-Date）
+    id: Mapped[str] = mapped_column(String(20), primary_key=True)
 
     # Date：日付（YYYY-MM-DD）
     date: Mapped[date] = mapped_column(

@@ -1,16 +1,15 @@
 from datetime import date, datetime
 
+from app.db.base import Base
 from sqlalchemy import Date, DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column
-
-from app.db.base import Base
 
 
 class JQuantsListedIssue(Base):
     __tablename__ = "jq_listed_issues"
 
-    # DB内部ID
-    id: Mapped[int] = mapped_column(primary_key=True)
+    # DB内部ID（Code）
+    id: Mapped[str] = mapped_column(String(20), primary_key=True)
 
     # Date：情報適用年月日（YYYY-MM-DD）
     date: Mapped[date] = mapped_column(

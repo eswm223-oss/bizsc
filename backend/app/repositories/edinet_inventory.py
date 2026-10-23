@@ -1,9 +1,8 @@
 from datetime import date
 
+from app.models import EdinetDocument, EdinetInventoryRun
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
-
-from app.models import EdinetDocument, EdinetInventoryRun
 
 
 class EdinetInventoryRepository:
@@ -23,9 +22,7 @@ class EdinetInventoryRepository:
         target_date: date,
     ) -> None:
         db.execute(
-            delete(EdinetDocument).where(
-                EdinetDocument.target_date == target_date
-            )
+            delete(EdinetDocument).where(EdinetDocument.target_date == target_date)
         )
         db.flush()
 
