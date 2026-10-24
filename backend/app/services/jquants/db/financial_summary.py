@@ -1,5 +1,8 @@
 from app.models import JQuantsFinancialSummary
-from app.repositories.financial_summary import JQuantsFinancialSummaryRepository
+from app.repositories.financial_summary import (
+    JQuantsFinancialSummaryRepository,
+    SearchRequest,
+)
 from sqlalchemy.orm import Session
 
 
@@ -17,7 +20,6 @@ class financial_summary_service:
             or data.document_type is None
         ):
             return None
-
         # id生成
         current_period_end = data.current_period_end.strftime("%Y%m%d")
         data.id = (
@@ -26,8 +28,16 @@ class financial_summary_service:
             f"{data.current_period_type}-"
             f"{data.document_type}"
         )
-
         return self.repository.createOrUpdate(db, data)
 
     def getByCode(self, db: Session, Code: str) -> list[JQuantsFinancialSummary] | None:
         return self.repository.getByCode(db, Code)
+
+    def search(
+        self,
+        db: Session,
+        search: SearchRequest | None = None,
+        page: int = 1,
+        limit: int = 50,
+    ) -> list[JQuantsFinancialSummary] | None:
+        return self.repository.getAllSearch(db, search, page, limit)

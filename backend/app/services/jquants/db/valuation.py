@@ -1,5 +1,5 @@
 from app.models import JQuantsValuation
-from app.repositories.valuation import JQuantsValuationRepository
+from app.repositories.valuation import JQuantsValuationRepository, SearchRequest
 from sqlalchemy.orm import Session
 
 
@@ -20,3 +20,12 @@ class valuation_service:
 
     def getByCode(self, db: Session, Code: str) -> list[JQuantsValuation] | None:
         return self.repository.getByCode(db, Code)
+
+    def search(
+        self,
+        db: Session,
+        search: SearchRequest | None = None,
+        page: int = 1,
+        limit: int = 50,
+    ) -> list[JQuantsValuation] | None:
+        return self.repository.getAllSearch(db, search, page, limit)

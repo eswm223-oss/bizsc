@@ -6,6 +6,7 @@ from app.clients.jquants import (
     fetch_summary,
     fetch_valuation,
 )
+from app.common import cmm_number, cmm_string
 from app.db.database import SessionLocal
 from app.models import JQuantsListedIssue
 from app.models.jquants_daily_quote import JQuantsDailyQuote
@@ -24,6 +25,9 @@ from app.services.jquants.db.valuation import valuation_service
 # JQuantsデータキャッシュ処理
 # ==================================
 
+to_date = cmm_string.to_date
+to_decimal = cmm_number.to_decimal
+
 
 # --------------------------------------------------
 # 上場銘柄一覧
@@ -41,10 +45,10 @@ def equities_master_cache(fromDate: date, toDate: date, code: str = ""):
         with SessionLocal.begin() as db:
             for record in result["data"]:
                 data = JQuantsListedIssue(
-                    date=date.fromisoformat(record["Date"]),
+                    date=to_date(record["Date"]),
                     code=record["Code"],
-                    record_name=record["CoName"],
-                    record_name_en=record["CoNameEn"],
+                    company_name=record["CoName"],
+                    company_name_en=record["CoNameEn"],
                     sector17_code=record["S17"],
                     sector17_name=record["S17Nm"],
                     sector33_code=record["S33"],
@@ -75,7 +79,7 @@ def daily_quote_cache(fromDate: date, toDate: date, code: str = ""):
         with SessionLocal.begin() as db:
             for record in result["data"]:
                 data = JQuantsDailyQuote(
-                    date=date.fromisoformat(record["Date"]),
+                    date=to_date(record["Date"]),
                     code=record["Code"],
                     open=record["O"],
                     high=record["H"],
@@ -112,7 +116,7 @@ def valuation_cache(fromDate: date, toDate: date, code: str = ""):
         with SessionLocal.begin() as db:
             for record in result["data"]:
                 data = JQuantsValuation(
-                    date=date.fromisoformat(record["Date"]),
+                    date=to_date(record["Date"]),
                     code=record["Code"],
                     eps=record["EPS"],
                     forward_eps=record["FwdEPS"],
@@ -143,59 +147,59 @@ def summary_cache(fromDate: date, toDate: date, code: str = ""):
         with SessionLocal.begin() as db:
             for record in result["data"]:
                 data = JQuantsFinancialSummary(
-                    disclosure_date=date.fromisoformat(record["DiscDate"]),
+                    disclosure_date=to_date(record["DiscDate"]),
                     disclosure_time=record["DiscTime"],
                     code=record["Code"],
                     disclosure_number=record["DiscNo"],
                     document_type=record["DocType"],
                     current_period_type=record["CurPerType"],
-                    current_period_start=date.fromisoformat(record["CurPerSt"]),
-                    current_period_end=date.fromisoformat(record["CurPerEn"]),
-                    current_fiscal_year_start=date.fromisoformat(record["CurFYSt"]),
-                    current_fiscal_year_end=date.fromisoformat(record["CurFYEn"]),
-                    sales=record["Sales"],
-                    operating_profit=record["OP"],
-                    ordinary_profit=record["OdP"],
-                    net_profit=record["NP"],
-                    eps=record["EPS"],
-                    diluted_eps=record["DEPS"],
-                    total_assets=record["TA"],
-                    equity=record["Eq"],
-                    shareholders_equity=record["ShEq"],
-                    equity_ratio=record["EqAR"],
-                    bps=record["BPS"],
-                    roe=record["ROE"],
-                    cash_flow_operating=record["CFO"],
-                    cash_flow_investing=record["CFI"],
-                    cash_flow_financing=record["CFF"],
-                    cash_and_equivalents=record["CashEq"],
-                    dividend_annual=record["DivAnn"],
-                    forecast_dividend_annual=record["FDivAnn"],
-                    next_forecast_dividend_annual=record["NxFDivAnn"],
-                    annual_payout_ratio=record["PayoutRatioAnn"],
-                    forecast_annual_payout_ratio=record["FPayoutRatioAnn"],
-                    shares_outstanding=record["ShOutFY"],
-                    treasury_shares=record["TrShFY"],
-                    average_shares=record["AvgSh"],
-                    forecast_sales_2q=record["FSales2Q"],
-                    forecast_operating_profit_2q=record["FOP2Q"],
-                    forecast_ordinary_profit_2q=record["FOdP2Q"],
-                    forecast_net_profit_2q=record["FNP2Q"],
-                    forecast_eps_2q=record["FEPS2Q"],
-                    forecast_sales=record["FSales"],
-                    forecast_operating_profit=record["FOP"],
-                    forecast_ordinary_profit=record["FOdP"],
-                    forecast_net_profit=record["FNP"],
-                    forecast_eps=record["FEPS"],
-                    next_forecast_sales_2q=record["NxFSales2Q"],
-                    next_forecast_operating_profit_2q=record["NxFOP2Q"],
-                    next_forecast_ordinary_profit_2q=record["NxFOdP2Q"],
-                    next_forecast_net_profit_2q=record["NxFNp2Q"],
-                    next_forecast_eps_2q=record["NxFEPS2Q"],
-                    next_forecast_sales=record["NxFSales"],
-                    next_forecast_operating_profit=record["NxFOP"],
-                    next_forecast_ordinary_profit=record["NxFOdP"],
-                    next_forecast_net_profit=record["NxFNp"],
-                    next_forecast_eps=record["NxFEPS"],
+                    current_period_start=to_date(record["CurPerSt"]),
+                    current_period_end=to_date(record["CurPerEn"]),
+                    current_fiscal_year_start=to_date(record["CurFYSt"]),
+                    current_fiscal_year_end=to_date(record["CurFYEn"]),
+                    sales=to_decimal(record["Sales"]),
+                    operating_profit=to_decimal(record["OP"]),
+                    ordinary_profit=to_decimal(record["OdP"]),
+                    net_profit=to_decimal(record["NP"]),
+                    eps=to_decimal(record["EPS"]),
+                    diluted_eps=to_decimal(record["DEPS"]),
+                    total_assets=to_decimal(record["TA"]),
+                    equity=to_decimal(record["Eq"]),
+                    shareholders_equity=to_decimal(record["ShEq"]),
+                    equity_ratio=to_decimal(record["EqAR"]),
+                    bps=to_decimal(record["BPS"]),
+                    roe=to_decimal(record["ROE"]),
+                    cash_flow_operating=to_decimal(record["CFO"]),
+                    cash_flow_investing=to_decimal(record["CFI"]),
+                    cash_flow_financing=to_decimal(record["CFF"]),
+                    cash_and_equivalents=to_decimal(record["CashEq"]),
+                    dividend_annual=to_decimal(record["DivAnn"]),
+                    forecast_dividend_annual=to_decimal(record["FDivAnn"]),
+                    next_forecast_dividend_annual=to_decimal(record["NxFDivAnn"]),
+                    annual_payout_ratio=to_decimal(record["PayoutRatioAnn"]),
+                    forecast_annual_payout_ratio=to_decimal(record["FPayoutRatioAnn"]),
+                    shares_outstanding=to_decimal(record["ShOutFY"]),
+                    treasury_shares=to_decimal(record["TrShFY"]),
+                    average_shares=to_decimal(record["AvgSh"]),
+                    forecast_sales_2q=to_decimal(record["FSales2Q"]),
+                    forecast_operating_profit_2q=to_decimal(record["FOP2Q"]),
+                    forecast_ordinary_profit_2q=to_decimal(record["FOdP2Q"]),
+                    forecast_net_profit_2q=to_decimal(record["FNP2Q"]),
+                    forecast_eps_2q=to_decimal(record["FEPS2Q"]),
+                    forecast_sales=to_decimal(record["FSales"]),
+                    forecast_operating_profit=to_decimal(record["FOP"]),
+                    forecast_ordinary_profit=to_decimal(record["FOdP"]),
+                    forecast_net_profit=to_decimal(record["FNP"]),
+                    forecast_eps=to_decimal(record["FEPS"]),
+                    next_forecast_sales_2q=to_decimal(record["NxFSales2Q"]),
+                    next_forecast_operating_profit_2q=to_decimal(record["NxFOP2Q"]),
+                    next_forecast_ordinary_profit_2q=to_decimal(record["NxFOdP2Q"]),
+                    next_forecast_net_profit_2q=to_decimal(record["NxFNp2Q"]),
+                    next_forecast_eps_2q=to_decimal(record["NxFEPS2Q"]),
+                    next_forecast_sales=to_decimal(record["NxFSales"]),
+                    next_forecast_operating_profit=to_decimal(record["NxFOP"]),
+                    next_forecast_ordinary_profit=to_decimal(record["NxFOdP"]),
+                    next_forecast_net_profit=to_decimal(record["NxFNp"]),
+                    next_forecast_eps=to_decimal(record["NxFEPS"]),
                 )
                 service.createOrUpdate(db, data)

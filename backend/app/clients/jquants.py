@@ -91,7 +91,7 @@ def fetch_listed_issues(date: date, code: str = "") -> Any:
 # --------------------------------------------------
 # 株価四本値
 # --------------------------------------------------
-EQUITIES_DAILY_URL = f"{JQUANTS_BASE_URL}/v2/equities/bars/daily"
+EQUITIES_DAILY_URL = f"{JQUANTS_BASE_URL}/equities/bars/daily"
 
 
 def fetch_bars_daily(date: date, code: str = "") -> Any:
@@ -127,7 +127,7 @@ def fetch_bars_daily(date: date, code: str = "") -> Any:
 # --------------------------------------------------
 # バリュエーション指標
 # --------------------------------------------------
-EQUITIES_VALUATION_URL = f"{JQUANTS_BASE_URL}/v2/equities/valuation"
+EQUITIES_VALUATION_URL = f"{JQUANTS_BASE_URL}/equities/valuation"
 
 
 def fetch_valuation(date: date, code: str = "") -> Any:
@@ -161,7 +161,7 @@ def fetch_valuation(date: date, code: str = "") -> Any:
 # --------------------------------------------------
 # 財務情報
 # --------------------------------------------------
-EQUITIES_SUMMARY_URL = f"{JQUANTS_BASE_URL}/v2/fins/summary"
+EQUITIES_SUMMARY_URL = f"{JQUANTS_BASE_URL}/fins/summary"
 
 
 def fetch_summary(date: date, code: str = "") -> Any:
