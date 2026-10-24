@@ -60,7 +60,11 @@ class JQuantsFinancialSummaryRepository:
                     JQuantsListedIssue,
                     JQuantsFinancialSummary.code == JQuantsListedIssue.code,
                 )
-                .where(search.dateFrom <= JQuantsListedIssue.date <= search.dateTo)
+                .where(
+                    JQuantsFinancialSummary.disclosure_date.between(
+                        search.dateFrom, search.dateTo
+                    )
+                )
                 .where(
                     or_(
                         JQuantsFinancialSummary.code.like(f"%{search.keyword}%"),
@@ -75,7 +79,7 @@ class JQuantsFinancialSummaryRepository:
         statement = (
             statement.order_by(
                 JQuantsFinancialSummary.code.asc(),
-                JQuantsFinancialSummary.current_period_end.desc(),
+                JQuantsFinancialSummary.disclosure_date.desc(),
             )
             .offset(offset)
             .limit(limit)

@@ -56,7 +56,7 @@ class JQuantsDailyQuoteRepository:
                     JQuantsListedIssue,
                     JQuantsDailyQuote.code == JQuantsListedIssue.code,
                 )
-                .where(search.dateFrom <= JQuantsListedIssue.date <= search.dateTo)
+                .where(JQuantsDailyQuote.date.between(search.dateFrom, search.dateTo))
                 .where(
                     or_(
                         JQuantsDailyQuote.code.like(f"%{search.keyword}%"),
