@@ -6,5 +6,5 @@ from pydantic import BaseModel
 class CacheBatchRequest(BaseModel):
     fromDate: date
     toDate: date
-    mgmtId: str
+    mgmtId: str | None = None
     code: str = ""

@@ -38,10 +38,10 @@ class CacheMgmtService:
             from_date=set.from_date,
             to_date=set.to_date,
             company_code=set.code,
-            status_master="waiting" if set.run_master else None,
-            status_dailyBar="waiting" if set.run_dailyBar else None,
-            status_valuation="waiting" if set.run_valuation else None,
-            status_summary="waiting" if set.run_summary else None,
+            status_master="Waiting" if set.run_master else None,
+            status_dailyBar="Waiting" if set.run_dailyBar else None,
+            status_valuation="Waiting" if set.run_valuation else None,
+            status_summary="Waiting" if set.run_summary else None,
         )
         return self.repository.create(db, sorce)
 
@@ -76,7 +76,7 @@ class CacheMgmtService:
         if response is None:
             raise ValueError("進捗ステータスの更新に失敗しました。")
 
-        return self.repository.update(db, sorce)
+        return response
 
     def delete_user(
         self,
