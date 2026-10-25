@@ -78,11 +78,17 @@ def fetch_listed_issues(date: date | None, code: str | None = "") -> Any:
         "x-api-key": api_key,
     }
 
+    params = {}
+    if code:
+        params["code"] = code
+    if date is not None:
+        params["date"] = dateToStr(date)
+
     try:
         response = httpx.get(
             EQUITIES_MASTER_URL,
             headers=headers,
-            params={"code": code, "date": dateToStr(date)},
+            params=params,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
     except httpx.TimeoutException:

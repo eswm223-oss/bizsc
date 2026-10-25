@@ -18,7 +18,7 @@ def run_cache(mgmtId: str) -> str:
         logger.info("J-Quants：キャッシュ処理バッチ：正常終了")
 
     except Exception:
-        logger.exception(f"J-Quants：キャッシュ処理バッチ：異常終了:{Exception}")
+        logger.exception("J-Quants：キャッシュ処理バッチ：異常終了")
         raise
 
     return mgmtId

@@ -60,7 +60,7 @@ def jquants_cache(mgmtId: str) -> Response:
         # キャッシュ処理　開始
         try:
             # 上場銘柄一覧　更新
-            if management.status_master == "Waiting":
+            if management.status_master in ["Waiting", "Running", "Error"]:
                 progress = "master"
                 management = mgmtSearvice.setStatus(
                     db, management.id, progress, "Running"
@@ -78,10 +78,7 @@ def jquants_cache(mgmtId: str) -> Response:
             else:
                 masterList = jquantsSearvice.getAll(db)
             if not masterList:
-                return {
-                    "status": "error",
-                    "message": "会社情報を取得できませんでした。",
-                }
+                raise ValueError("会社情報を取得できませんでした。")
 
             # 株価四本値　更新
             if management.status_dailyBar in ["Waiting", "Running", "Error"]:
