@@ -16,7 +16,7 @@ class CacheMgmt(Base):
         nullable=False,
     )
 
-    to_date: Mapped[str] = mapped_column(
+    to_date: Mapped[date] = mapped_column(
         Date,
         nullable=False,
     )

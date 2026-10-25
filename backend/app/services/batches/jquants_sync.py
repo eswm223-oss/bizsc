@@ -1,19 +1,16 @@
 import logging
-from datetime import date
 
 from app.services.jquants.cache.jquants_cache import jquants_cache
 
 logger = logging.getLogger(__name__)
 
 
-def run_plain(fromDate: date, toDate: date, mgmtId: str, code: str = "") -> str:
+def run_cache(mgmtId: str) -> str:
     try:
         logger.info("J-Quantsキャッシュ処理バッチ：開始")
 
         # キャッシュ処理
-        result = jquants_cache(
-            fromDate=fromDate, toDate=toDate, mgmtId=mgmtId, code=code
-        )
+        result = jquants_cache(mgmtId)
 
         if result["status"] == "error":
             raise ValueError(result["message"])

@@ -1,4 +1,4 @@
-from app.services.batches.jquants_sync import run_plain
+from app.services.batches.jquants_sync import run_cache
 from app.services.edinet_inventory import EdinetInventoryService
 from app.services.jquants.cache import jquants_cache
 from app.services.jquants.db.cache_manage import CacheMgmtService, NewParameter
@@ -18,5 +18,5 @@ __all__ = [
     "UserService",
     "Valuation_service",
     "jquants_cache",
-    "run_plain",
+    "run_cache",
 ]

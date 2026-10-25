@@ -71,7 +71,7 @@ def _require_api_key() -> str:
 EQUITIES_MASTER_URL = f"{JQUANTS_BASE_URL}/equities/master"
 
 
-def fetch_listed_issues(date: date | None, code: str = "") -> Any:
+def fetch_listed_issues(date: date | None, code: str | None = "") -> Any:
     api_key = _require_api_key()
 
     headers = {

@@ -43,9 +43,7 @@ class Response(TypedDict):
 # --------------------------------------------------
 # JQuantsキャッシュ
 # --------------------------------------------------
-def jquants_cache(
-    fromDate: date, toDate: date, mgmtId: str, code: str = ""
-) -> Response:
+def jquants_cache(mgmtId: str) -> Response:
 
     progress: ITEM_LITERAL = "other"
     with SessionLocal() as db:
@@ -67,53 +65,62 @@ def jquants_cache(
                 management = mgmtSearvice.setStatus(
                     db, management.id, progress, "Running"
                 )
-                _equities_master_cache(fromDate, toDate, code)
+                _equities_master_cache(management.company_code)
                 management = mgmtSearvice.setStatus(
                     db, management.id, progress, "Complete"
                 )
 
             # 上場銘柄一覧　取得
             jquantsSearvice = Equities_master_service(JQuantsListedIssueRepository())
-            if code:
-                company = jquantsSearvice.getByCode(db, code)
+            if management.company_code:
+                company = jquantsSearvice.getByCode(db, management.company_code)
                 masterList = [company] if company is not None else []
             else:
                 masterList = jquantsSearvice.getAll(db)
-            if masterList is None:
-                return {"status": "error", "message": "会社一覧取得に失敗しました。"}
+            if not masterList:
+                return {
+                    "status": "error",
+                    "message": "会社情報を取得できませんでした。",
+                }
 
             # 株価四本値　更新
-            if management.status_dailyBar == "Waiting":
+            if management.status_dailyBar in ["Waiting", "Running", "Error"]:
                 progress = "dailyBar"
                 management = mgmtSearvice.setStatus(
                     db, management.id, progress, "Running"
                 )
                 for company in masterList:
-                    _daily_quote_cache(company.code, fromDate, toDate)
+                    _daily_quote_cache(
+                        company.code, management.from_date, management.to_date
+                    )
                 management = mgmtSearvice.setStatus(
                     db, management.id, progress, "Complete"
                 )
 
             # バリュエーション指標　更新
-            if management.status_valuation == "Waiting":
+            if management.status_valuation in ["Waiting", "Running", "Error"]:
                 progress = "valuation"
                 management = mgmtSearvice.setStatus(
                     db, management.id, progress, "Running"
                 )
                 for company in masterList:
-                    _valuation_cache(company.code, fromDate, toDate)
+                    _valuation_cache(
+                        company.code, management.from_date, management.to_date
+                    )
                 management = mgmtSearvice.setStatus(
                     db, management.id, progress, "Complete"
                 )
 
             # 財務情報　更新
-            if management.status_summary == "Waiting":
+            if management.status_summary in ["Waiting", "Running", "Error"]:
                 progress = "summary"
                 management = mgmtSearvice.setStatus(
                     db, management.id, progress, "Running"
                 )
                 for company in masterList:
-                    _summary_cache(company.code, fromDate, toDate)
+                    _summary_cache(
+                        company.code, management.from_date, management.to_date
+                    )
                 management = mgmtSearvice.setStatus(
                     db, management.id, progress, "Complete"
                 )
@@ -130,7 +137,7 @@ def jquants_cache(
 # --------------------------------------------------
 # 上場銘柄一覧
 # --------------------------------------------------
-def _equities_master_cache(fromDate: date, toDate: date, code: str = "") -> None:
+def _equities_master_cache(code: str | None = "") -> None:
 
     service = Equities_master_service(JQuantsListedIssueRepository())
 
@@ -140,8 +147,6 @@ def _equities_master_cache(fromDate: date, toDate: date, code: str = "") -> None
     # DBにキャッシュ
     with SessionLocal.begin() as db:
         for record in result["data"]:
-            if not fromDate <= record["Date"] <= toDate:
-                continue
             data = JQuantsListedIssue(
                 date=TO_DATE(record["Date"]),
                 code=record["Code"],

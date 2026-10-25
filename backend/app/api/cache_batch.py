@@ -1,7 +1,7 @@
 from app.db.database import SessionLocal
 from app.repositories import CacheMgmtRepository
 from app.schemas.cache_batch import CacheBatchRequest
-from app.services.batches.jquants_sync import run_plain
+from app.services.batches.jquants_sync import run_cache
 from app.services.jquants.db.cache_manage import (
     CacheMgmtService,
     NewParameter,
@@ -36,8 +36,9 @@ def start_jquants_plain_cache(
             )
 
     # バッチ処理　起動
-    background_tasks.add_task(
-        run_plain, body.fromDate, body.toDate, body.mgmtId, body.code
-    )
+    background_tasks.add_task(run_cache, body.mgmtId)
 
-    return {"message": "バッチ起動を受け付けました"}
+    return {
+        "message": "バッチ起動を受け付けました",
+        "mgmtId": body.mgmtId,
+    }
