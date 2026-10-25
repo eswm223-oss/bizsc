@@ -1,3 +1,4 @@
+from app.schemas.cache_batch import CacheBatchRequest
 from app.schemas.user import (
     UserCreate,
     UserListResponse,
@@ -6,8 +7,9 @@ from app.schemas.user import (
 )
 
 __all__ = [
+    "CacheBatchRequest",
     "UserCreate",
-    "UserUpdate",
-    "UserResponse",
     "UserListResponse",
+    "UserResponse",
+    "UserUpdate",
 ]

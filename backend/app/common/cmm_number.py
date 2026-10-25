@@ -1,10 +1,5 @@
 from decimal import Decimal
 
-__all__ = [
-    "to_Number",
-    "to_decimal",
-]
-
 
 def to_decimal(value: str | None) -> Decimal | None:
     if value is None or value == "":
@@ -12,7 +7,7 @@ def to_decimal(value: str | None) -> Decimal | None:
     return Decimal(value)
 
 
-def to_Number(value: str | None) -> int | None:
+def to_number(value: str | None) -> int | None:
     if value is None or value == "":
         return None
     return int(value)

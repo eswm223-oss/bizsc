@@ -3,10 +3,18 @@ from datetime import date
 from typing import Any
 
 import httpx
+from app.common import cmm_date
 from app.core.config import settings
 
 JQUANTS_BASE_URL = "https://api.jquants.com/v2"
 REQUEST_TIMEOUT_SECONDS = 30.0
+
+__all__ = [
+    "fetch_bars_daily",
+    "fetch_listed_issues",
+    "fetch_summary",
+    "fetch_valuation",
+]
 
 
 class JQuantsClientError(Exception):
@@ -42,6 +50,9 @@ def _parse_json_body(response: httpx.Response) -> Any:
         ) from None
 
 
+dateToStr = cmm_date.to_str
+
+
 # --------------------------------------------------
 # APIキー
 # --------------------------------------------------
@@ -60,7 +71,7 @@ def _require_api_key() -> str:
 EQUITIES_MASTER_URL = f"{JQUANTS_BASE_URL}/equities/master"
 
 
-def fetch_listed_issues(date: date, code: str = "") -> Any:
+def fetch_listed_issues(date: date | None, code: str = "") -> Any:
     api_key = _require_api_key()
 
     headers = {
@@ -71,7 +82,7 @@ def fetch_listed_issues(date: date, code: str = "") -> Any:
         response = httpx.get(
             EQUITIES_MASTER_URL,
             headers=headers,
-            params={"code": code, "date": date.isoformat()},
+            params={"code": code, "date": dateToStr(date)},
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
     except httpx.TimeoutException:
@@ -94,7 +105,7 @@ def fetch_listed_issues(date: date, code: str = "") -> Any:
 EQUITIES_DAILY_URL = f"{JQUANTS_BASE_URL}/equities/bars/daily"
 
 
-def fetch_bars_daily(date: date, code: str = "") -> Any:
+def fetch_bars_daily(code: str, fromDate: date | None, toDate: date | None) -> Any:
     api_key = _require_api_key()
 
     headers = {
@@ -104,7 +115,7 @@ def fetch_bars_daily(date: date, code: str = "") -> Any:
     try:
         response = httpx.get(
             EQUITIES_DAILY_URL,
-            params={"code": code, "date": date.isoformat()},
+            params={"code": code, "from": dateToStr(fromDate), "to": dateToStr(toDate)},
             headers=headers,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
@@ -130,7 +141,7 @@ def fetch_bars_daily(date: date, code: str = "") -> Any:
 EQUITIES_VALUATION_URL = f"{JQUANTS_BASE_URL}/equities/valuation"
 
 
-def fetch_valuation(date: date, code: str = "") -> Any:
+def fetch_valuation(code: str, fromDate: date | None, toDate: date | None) -> Any:
     api_key = _require_api_key()
 
     headers = {
@@ -140,7 +151,7 @@ def fetch_valuation(date: date, code: str = "") -> Any:
     try:
         response = httpx.get(
             EQUITIES_VALUATION_URL,
-            params={"code": code, "date": date.isoformat()},
+            params={"code": code, "from": dateToStr(fromDate), "to": dateToStr(toDate)},
             headers=headers,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
@@ -164,7 +175,7 @@ def fetch_valuation(date: date, code: str = "") -> Any:
 EQUITIES_SUMMARY_URL = f"{JQUANTS_BASE_URL}/fins/summary"
 
 
-def fetch_summary(date: date, code: str = "") -> Any:
+def fetch_summary(code: str, fromDate: date | None, toDate: date | None) -> Any:
     api_key = _require_api_key()
 
     headers = {
@@ -174,7 +185,7 @@ def fetch_summary(date: date, code: str = "") -> Any:
     try:
         response = httpx.get(
             EQUITIES_SUMMARY_URL,
-            params={"code": code, "date": date.isoformat()},
+            params={"code": code, "from": dateToStr(fromDate), "to": dateToStr(toDate)},
             headers=headers,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )

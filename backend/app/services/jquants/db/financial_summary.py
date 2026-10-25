@@ -6,7 +6,7 @@ from app.repositories.financial_summary import (
 from sqlalchemy.orm import Session
 
 
-class financial_summary_service:
+class Financial_summary_service:
     def __init__(self, repository: JQuantsFinancialSummaryRepository) -> None:
         self.repository = repository
 

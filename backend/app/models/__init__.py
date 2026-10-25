@@ -1,3 +1,4 @@
+from app.models.cache_mgmt import CacheMgmt
 from app.models.edinet_document import EdinetDocument
 from app.models.edinet_inventory_run import EdinetInventoryRun
 from app.models.jquants_daily_quote import JQuantsDailyQuote
@@ -7,6 +8,7 @@ from app.models.jquants_valuation import JQuantsValuation
 from app.models.user import User
 
 __all__ = [
+    "CacheMgmt",
     "EdinetDocument",
     "EdinetInventoryRun",
     "JQuantsDailyQuote",

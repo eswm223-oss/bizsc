@@ -3,7 +3,7 @@ from app.repositories.equities_master import JQuantsListedIssueRepository
 from sqlalchemy.orm import Session
 
 
-class equities_master_service:
+class Equities_master_service:
     def __init__(self, repository: JQuantsListedIssueRepository) -> None:
         self.repository = repository
 
@@ -11,6 +11,10 @@ class equities_master_service:
         self, db: Session, data: JQuantsListedIssue
     ) -> JQuantsListedIssue | None:
         if data is None:
+            return None
+
+        before = self.repository.getByCode(db, data.code)
+        if before is not None and before.date > data.date:
             return None
 
         # id生成

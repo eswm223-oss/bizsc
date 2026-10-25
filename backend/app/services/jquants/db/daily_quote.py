@@ -3,7 +3,7 @@ from app.repositories.daily_quote import JQuantsDailyQuoteRepository, SearchRequ
 from sqlalchemy.orm import Session
 
 
-class daily_quote_service:
+class Daily_quote_service:
     def __init__(self, repository: JQuantsDailyQuoteRepository) -> None:
         self.repository = repository
 

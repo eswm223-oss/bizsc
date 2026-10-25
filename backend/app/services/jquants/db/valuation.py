@@ -3,7 +3,7 @@ from app.repositories.valuation import JQuantsValuationRepository, SearchRequest
 from sqlalchemy.orm import Session
 
 
-class valuation_service:
+class Valuation_service:
     def __init__(self, repository: JQuantsValuationRepository) -> None:
         self.repository = repository
 
