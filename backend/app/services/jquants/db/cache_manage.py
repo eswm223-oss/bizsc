@@ -1,4 +1,3 @@
-import datetime
 from datetime import date, datetime
 from typing import Literal
 from zoneinfo import ZoneInfo
@@ -43,6 +42,7 @@ class CacheMgmtService:
             status_valuation="Waiting" if set.run_valuation else None,
             status_summary="Waiting" if set.run_summary else None,
         )
+        print(f"sorce:{sorce}")
         return self.repository.create(db, sorce)
 
     def getById(self, db: Session, id: str) -> CacheMgmt | None:

@@ -50,6 +50,26 @@ def _parse_json_body(response: httpx.Response) -> Any:
         ) from None
 
 
+def _raise_for_http_error(response: httpx.Response) -> None:
+    if response.status_code == 200:
+        return
+
+    message = f"HTTP {response.status_code}"
+
+    try:
+        body = response.json()
+
+        if isinstance(body, dict):
+            api_message = body.get("message")
+            if isinstance(api_message, str) and api_message:
+                message = api_message
+
+    except ValueError:
+        pass
+
+    raise JQuantsHttpError(response.status_code, message)
+
+
 dateToStr = cmm_date.to_str
 
 
@@ -96,11 +116,7 @@ def fetch_listed_issues(date: date | None, code: str | None = "") -> Any:
     except httpx.RequestError:
         raise JQuantsClientError("J-Quants API(master) request failed") from None
 
-    if response.status_code != 200:
-        raise JQuantsHttpError(
-            response.status_code,
-            f"J-Quants API returned HTTP {response.status_code}",
-        )
+    _raise_for_http_error(response)
 
     return _parse_json_body(response)
 
@@ -132,11 +148,7 @@ def fetch_bars_daily(code: str, fromDate: date | None, toDate: date | None) -> A
     except httpx.RequestError:
         raise JQuantsClientError("J-Quants API(bars_daily) request failed") from None
 
-    if response.status_code != 200:
-        raise JQuantsHttpError(
-            response.status_code,
-            f"J-Quants API(bars_daily) returned HTTP {response.status_code}",
-        )
+    _raise_for_http_error(response)
 
     return _parse_json_body(response)
 
@@ -166,11 +178,7 @@ def fetch_valuation(code: str, fromDate: date | None, toDate: date | None) -> An
     except httpx.RequestError:
         raise JQuantsClientError("J-Quants API(valuation) request failed") from None
 
-    if response.status_code != 200:
-        raise JQuantsHttpError(
-            response.status_code,
-            f"J-Quants API(bars_daily) returned HTTP {response.status_code}",
-        )
+    _raise_for_http_error(response)
 
     return _parse_json_body(response)
 
@@ -200,10 +208,6 @@ def fetch_summary(code: str, fromDate: date | None, toDate: date | None) -> Any:
     except httpx.RequestError:
         raise JQuantsClientError("J-Quants API(summary) request failed") from None
 
-    if response.status_code != 200:
-        raise JQuantsHttpError(
-            response.status_code,
-            f"J-Quants API(summary) returned HTTP {response.status_code}",
-        )
+    _raise_for_http_error(response)
 
     return _parse_json_body(response)

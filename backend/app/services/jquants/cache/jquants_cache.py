@@ -1,3 +1,4 @@
+import time
 from datetime import date
 from typing import Literal, TypedDict
 
@@ -45,13 +46,13 @@ class Response(TypedDict):
 # --------------------------------------------------
 def jquants_cache(mgmtId: str) -> Response:
 
-    progress: ITEM_LITERAL = "other"
+    process: ITEM_LITERAL = "other"
     with SessionLocal() as db:
         # ステータス準備
         mgmtSearvice = CacheMgmtService(CacheMgmtRepository())
         management = mgmtSearvice.getById(db, mgmtId)
 
-        if management is None:
+        if not management:
             return {
                 "status": "error",
                 "message": "キャッシュ処理の準備に失敗しました。",
@@ -60,14 +61,14 @@ def jquants_cache(mgmtId: str) -> Response:
         # キャッシュ処理　開始
         try:
             # 上場銘柄一覧　更新
+            process = "master"
             if management.status_master in ["Waiting", "Running", "Error"]:
-                progress = "master"
                 management = mgmtSearvice.setStatus(
-                    db, management.id, progress, "Running"
+                    db, management.id, process, "Running"
                 )
                 _equities_master_cache(management.company_code)
                 management = mgmtSearvice.setStatus(
-                    db, management.id, progress, "Complete"
+                    db, management.id, process, "Complete"
                 )
 
             # 上場銘柄一覧　取得
@@ -82,49 +83,51 @@ def jquants_cache(mgmtId: str) -> Response:
 
             # 株価四本値　更新
             if management.status_dailyBar in ["Waiting", "Running", "Error"]:
-                progress = "dailyBar"
+                process = "dailyBar"
                 management = mgmtSearvice.setStatus(
-                    db, management.id, progress, "Running"
+                    db, management.id, process, "Running"
                 )
                 for company in masterList:
                     _daily_quote_cache(
-                        company.code, management.from_date, management.to_date
+                        code=company.code,
+                        fromDate=management.from_date,
+                        toDate=management.to_date,
                     )
                 management = mgmtSearvice.setStatus(
-                    db, management.id, progress, "Complete"
+                    db, management.id, process, "Complete"
                 )
 
             # バリュエーション指標　更新
             if management.status_valuation in ["Waiting", "Running", "Error"]:
-                progress = "valuation"
+                process = "valuation"
                 management = mgmtSearvice.setStatus(
-                    db, management.id, progress, "Running"
+                    db, management.id, process, "Running"
                 )
                 for company in masterList:
                     _valuation_cache(
                         company.code, management.from_date, management.to_date
                     )
                 management = mgmtSearvice.setStatus(
-                    db, management.id, progress, "Complete"
+                    db, management.id, process, "Complete"
                 )
 
             # 財務情報　更新
             if management.status_summary in ["Waiting", "Running", "Error"]:
-                progress = "summary"
+                process = "summary"
                 management = mgmtSearvice.setStatus(
-                    db, management.id, progress, "Running"
+                    db, management.id, process, "Running"
                 )
                 for company in masterList:
                     _summary_cache(
                         company.code, management.from_date, management.to_date
                     )
                 management = mgmtSearvice.setStatus(
-                    db, management.id, progress, "Complete"
+                    db, management.id, process, "Complete"
                 )
 
         except Exception as e:  # noqa: BLE001
             management = mgmtSearvice.setStatus(
-                db, management.id, progress, "Error", str(e)
+                db, management.id, process, "Error", str(e)
             )
             return {"status": "error", "message": str(e)}
 
@@ -169,7 +172,7 @@ def _equities_master_cache(code: str | None = "") -> None:
 def _daily_quote_cache(code: str, fromDate: date | None, toDate: date | None) -> None:
 
     service = Daily_quote_service(JQuantsDailyQuoteRepository())
-
+    time.sleep(1)
     # APIから取得
     result = fetch_bars_daily(code, fromDate, toDate)
 
@@ -204,7 +207,7 @@ def _daily_quote_cache(code: str, fromDate: date | None, toDate: date | None) ->
 def _valuation_cache(code: str, fromDate: date | None, toDate: date | None) -> None:
 
     service = Valuation_service(JQuantsValuationRepository())
-
+    time.sleep(1)
     # APIから取得
     result = fetch_valuation(code, fromDate, toDate)
 
@@ -233,7 +236,7 @@ def _valuation_cache(code: str, fromDate: date | None, toDate: date | None) -> N
 def _summary_cache(code: str, fromDate: date | None, toDate: date | None) -> None:
 
     service = Financial_summary_service(JQuantsFinancialSummaryRepository())
-
+    time.sleep(1)
     # APIから取得
     result = fetch_summary(code, fromDate, toDate)
 

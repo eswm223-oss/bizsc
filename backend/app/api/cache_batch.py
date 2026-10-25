@@ -20,7 +20,7 @@ def start_jquants_plain_cache(
 ):
 
     # ステータス　準備
-    if body.mgmtId is None:
+    if not body.mgmtId:
         with SessionLocal() as db:
             nweParam = NewParameter(
                 from_date=body.fromDate,
