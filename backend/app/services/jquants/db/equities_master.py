@@ -26,10 +26,22 @@ class Equities_master_service:
         self,
         db: Session,
         search: str | None = None,
+        sort_by: str = "id",
+        sort_order: str = "asc",
         page: int = 1,
         limit: int = 50,
-    ) -> list[JQuantsListedIssue] | None:
-        return self.repository.getAllSearch(db, search, page, limit)
+    ) -> tuple[list[JQuantsListedIssue], int]:
+        resList = self.repository.getAllSearch(
+            db=db,
+            search=search,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            limit=limit,
+        )
+        resToral = self.repository.count_all(db=db, search=search)
+
+        return resList, resToral
 
     def getAll(
         self,

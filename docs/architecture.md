@@ -1,582 +1,263 @@
 # BizSC Architecture
 
-更新日: 2026-09-26
+更新日: 2026-10-25  
+確認したGitHubコミット: [`jquants_chche_process_fix_4`](https://github.com/eswm223-oss/bizsc/commit/1a4f7a9d6804daf8d56340f1c1c5a8d0eb1747ca)
 
-## 1. このドキュメントの目的
+## 1. 目的と読み方
 
-このドキュメントは、BizSC の現在のシステム構成・責務分離・実装ルールを確認するための基準資料です。
+この資料は、BizSC の**現在の実装構成、データモデル、責務分離、トランザクション方針**を説明する基準資料です。個別の進捗・未確認事項・作業再開手順は `handover_phase.md`、プロジェクト全体の目的・ロードマップは `project-overview.md` に記載します。
 
-過去の細かな作業履歴ではなく、現在採用している構成と今後の実装判断の基準を記載します。
-具体的な進捗・直近の検証結果・次の Step は `handover_phase.md` で管理します。
+- ここでいう「実装済み」は**GitHub上にコードが存在する**ことを指し、本資料作成時に全件実行や結合テストを実施したことを意味しません。
+- 新しいチャットや変更作業では、まずGitHub上の最新コミットを確認してください。
 
----
+## 2. システム概要
 
-## 2. プロジェクト概要
-
-**Project:** BizSC
-
-BizSC は、日本株を対象とした個人用の株スクリーニング Web Application です。
-
-主な目的:
-
-- 上場銘柄の基礎情報を DB にキャッシュする
-- 日足株価を蓄積する
-- 財務情報を蓄積する
-- 株価・財務データからスクリーニング指標を計算する
-- 条件検索・比較・ランキング・可視化へ拡張する
-
-現在の主要データソース方針:
+BizSCは、日本株を対象とする個人用の株式スクリーニングWebアプリです。J-Quants APIを主たるデータソースとして、企業情報、日足株価、バリュエーション、財務サマリーをPostgreSQLに保存し、後続の検索・指標計算で利用します。
 
 ```text
-J-Quants API
-    ↓
-BizSC Backend
-    ↓
-PostgreSQL Cache
-    ↓
-Screening / Analysis
-```
+【Web / User】
+Browser → React / TypeScript / Vite → Axios → FastAPI
+                                             ↓
+                                     Router → Service
+                                                ↓
+                                           Repository
+                                                ↓
+                                          PostgreSQL
 
-2026-09-26 から J-Quants を BizSC の主データソースとして採用する。
-
-EDINET はこれまで実装・検証したコードと DB Table は残っているが、今後の主データ取得方式から外し、EDINET ベースの財務データ取得計画は白紙化する。
-
----
-
-## 3. 技術構成
-
-### Backend
-
-- Python 3.12
-- FastAPI
-- SQLAlchemy
-- PostgreSQL 17
-- psycopg
-- Alembic
-- Pydantic / pydantic-settings
-- pytest
-- httpx
-
-### Frontend
-
-- React
-- TypeScript
-- Vite
-- React Router
-- Axios
-- Bootstrap
-
-### Development / Infrastructure
-
-- Windows
-- Cursor
-- GitHub Desktop
-- Docker Desktop
-- Docker Compose
-- TablePlus
-
-Workspace:
-
-```text
-D:\Development\apps\bizsc
-```
-
-GitHub:
-
-```text
-https://github.com/eswm223-oss/bizsc
-```
-
-コード確認が必要な場合は、推測ではなく GitHub の最新状態を確認する。
-
----
-
-## 4. 全体アーキテクチャ
-
-通常の Web API:
-
-```text
-Browser
+【J-Quants バッチ】
+POST /batches/jquants/cache/plain
+  ↓ 202 Accepted + mgmtId
+FastAPI BackgroundTasks（同じアプリケーションプロセス内）
   ↓
-React / TypeScript / Vite
-  ↓ Axios
-FastAPI
+run_cache(mgmtId)
   ↓
-API Router
-  ↓
-Service
-  ↓
-Repository
-  ↓
-SQLAlchemy Model
-  ↓
-PostgreSQL
+jquants_cache(mgmtId) ← cache_mgmt（対象・期間・実行状態）
+  ├─ J-Quants Client → J-Quants API
+  ├─ キャッシュ用Service → Repository → jq_* テーブル
+  └─ CacheMgmtService → CacheMgmtRepository → cache_mgmt
 ```
 
-外部データ取得:
+`202 Accepted` は**処理受付**を表します。キャッシュ処理が完了したことを保証するレスポンスではありません。
 
-```text
-J-Quants API
-    ↑
-    │ HTTP
-Client
-    ↑
-    │
-Service
-    ├────────→ Repository ─→ Model ─→ PostgreSQL
-    └────────→ Business Logic
-```
+## 3. 技術スタック・実行環境
 
-責務:
+| 分野 | 採用技術 |
+|---|---|
+| Backend | Python 3.12、FastAPI、SQLAlchemy、Pydantic、httpx、Alembic |
+| Database | PostgreSQL 17、psycopg |
+| Frontend | React、TypeScript、Vite、React Router、Axios、Bootstrap |
+| 開発環境 | Windows、Cursor、GitHub Desktop、Docker Desktop、Docker Compose、TablePlus |
+| Backendテスト基盤 | pytest |
 
-- **Client**: 外部 API 通信
-- **Service**: 業務処理、複数処理の組み立て、Transaction
-- **Repository**: PostgreSQL への DB Access
-- **Model**: Table 定義
-- **API Router**: HTTP Request / Response
+- Workspace: `D:\Development\apps\bizsc`
+- GitHub: <https://github.com/eswm223-oss/bizsc>
+- Compose: `backend` (8000)、`frontend` (5173)、`db` (5432)
+- Windows上の別PostgreSQLサービスが5432番ポートを占有すると、Docker側との競合が発生し得ます。
 
-Client と Repository を混在させない。
-
----
-
-## 5. Docker Compose
-
-基本 Service:
-
-```text
-frontend
-backend
-db
-```
-
-Ports:
-
-```text
-frontend: 5173
-backend: 8000
-db: 5432
-```
-
-PostgreSQL:
-
-```text
-Image: postgres:17
-Database: bizsc
-User: bizsc
-```
-
-Windows にインストールした PostgreSQL Service が `5432` を使用すると Docker PostgreSQL と競合するため、BizSC では Docker 側を使用する。
-
----
-
-## 6. Backend 基本構成
+## 4. Backendディレクトリ・役割
 
 ```text
 backend/
-├─ alembic/
+├─ alembic/versions/                     # DBマイグレーション
 ├─ app/
+│  ├─ main.py                             # FastAPIのアプリ・Router登録
 │  ├─ api/
-│  ├─ batches/
-│  ├─ clients/
-│  ├─ core/
-│  ├─ db/
-│  ├─ models/
-│  ├─ repositories/
+│  │  └─ cache_batch.py                   # キャッシュ起動API
 │  ├─ schemas/
+│  │  └─ cache_batch.py                   # CacheBatchRequest
+│  ├─ clients/
+│  │  └─ jquants.py                       # J-Quants HTTP API
+│  ├─ common/
+│  │  ├─ cmm_date.py
+│  │  ├─ cmm_number.py
+│  │  └─ cmm_string.py
 │  ├─ services/
-│  └─ main.py
+│  │  ├─ batches/jquants_sync.py          # run_cache: バッチ入口
+│  │  └─ jquants/
+│  │     ├─ cache/jquants_cache.py        # キャッシュ全体と各Dataset処理
+│  │     └─ db/
+│  │        ├─ cache_manage.py            # 進捗管理Service
+│  │        ├─ equities_master.py         # 上場銘柄Service
+│  │        ├─ daily_quote.py             # 日足株価Service
+│  │        ├─ valuation.py               # Valuation Service
+│  │        └─ financial_summary.py       # 財務Summary Service
+│  ├─ repositories/
+│  │  ├─ cache_mgmt.py
+│  │  ├─ equities_master.py
+│  │  ├─ daily_quote.py
+│  │  ├─ valuation.py
+│  │  └─ financial_summary.py
+│  ├─ models/
+│  │  ├─ cache_mgmt.py
+│  │  ├─ jquants_listed_issue.py
+│  │  ├─ jquants_daily_quote.py
+│  │  ├─ jquants_valuation.py
+│  │  └─ jquants_financial_summary.py
+│  └─ db/database.py                      # SessionLocal / get_db
 └─ tests/
 ```
 
-### API Router
+主な責務分離:
 
-URL / HTTP Method / Parameter / Schema / Dependency Injection / Service 呼び出しを担当する。
-SQLAlchemy Query や複雑な業務ロジックを直接書かない。
+- **Router / Schema:** HTTP入力の受理、入力型、バックグラウンド処理の登録、HTTPレスポンス。
+- **Batch:** 管理IDを引き渡してキャッシュ処理を起動し、ログを記録。
+- **Cache:** 進捗状態に従ったDatasetの実行、JSONからModelへの変換、API呼び出し順序。
+- **Client:** APIキー、エンドポイント、HTTP通信、タイムアウト、APIエラー本文の解析。
+- **Service:** 業務ルール・主キー生成・銘柄マスタの新旧判定・ステータス更新。
+- **Repository:** SQLAlchemyによるDB操作。J-Quantsデータ保存では通常`db.merge()`を利用。
+- **Model / Alembic:** カラム定義とスキーマ変更。
 
-### Client
+## 5. J-Quants接続
 
-外部 API の Endpoint、認証、Request Parameter、Timeout、HTTP Error、Response Parsing を担当する。
-API Key / Token を Source Code、Log、Error Message に出さない。
+`backend/app/clients/jquants.py` に実装済み。基底URLは `https://api.jquants.com/v2`、認証ヘッダは `x-api-key`。APIキーは環境設定から参照し、ソースコードや共有資料には記載しません。
 
-### Service
+| Dataset | Client関数 | APIエンドポイント |
+|---|---|---|
+| 上場銘柄マスタ | `fetch_listed_issues` | `/equities/master` |
+| 日足株価 | `fetch_bars_daily` | `/equities/bars/daily` |
+| バリュエーション | `fetch_valuation` | `/equities/valuation` |
+| 財務サマリー | `fetch_summary` | `/fins/summary` |
 
-Business Logic、Client 呼び出し、Repository 呼び出し、Transaction を担当する。
+- 上場銘柄マスタは`date`を指定せず最新情報を取得し、`code`指定は可能。
+- 他の3 Datasetは銘柄コードおよび`from`/`to`の日付範囲を使用。
+- タイムアウトはHTTPリクエストごとに30秒。
+- HTTP非200の場合はレスポンスJSONに文字列の`message`があればそれを例外メッセージとして取り出し、なければHTTPステータスで表現。
+- JSON解析エラー、タイムアウト、APIキー未設定等を例外として扱う。
+- 2026-10-25のコードでは、日足株価・Valuation・財務サマリーの各銘柄API呼び出し前に`time.sleep(1)`がある。
+- **ページネーションへの自動追従は未実装**。現時点ではユーザーのPostmanによる取得確認を踏まえ、対応を保留する判断。
 
-### Repository
+## 6. 保存テーブルと識別子
 
-select / insert / update / delete / pagination / count 等の DB Access を担当する。
-Transaction を Service で管理する場合、Repository 内で勝手に `commit()` しない。
+| テーブル | SQLAlchemy Model | キー・保存方針 |
+|---|---|---|
+| `jq_listed_issues` | `JQuantsListedIssue` | 主キー`id=code`。既存行より取得データの日付が古ければ更新をスキップ。最新の銘柄情報を保持。 |
+| `jq_daily_quotes` | `JQuantsDailyQuote` | 主キー`code-YYYYMMDD`。銘柄・取引日ごとに保存、既存行は`merge()`で上書き。 |
+| `jq_valuations` | `JQuantsValuation` | 主キー`code-YYYYMMDD`。銘柄・日付ごとに保存、既存行は上書き。 |
+| `jq_financial_summaries` | `JQuantsFinancialSummary` | 主キー`code-current_period_end-current_period_type-document_type`。同一期間・種別は上書き。 |
+| `cache_mgmt` | `CacheMgmt` | キャッシュ起動単位の管理レコード。日時文字列の主キーとDataset別ステータスを保持。 |
 
-### Model
+J-Quantsのデータをすべて生JSON保存するのではなく、スクリーニングに使う列を選別して正規化しています。証券コードは文字列、金額等は`Numeric`/`Decimal`、日付は`Date`を用います。財務APIの空文字列は`to_decimal()`/`to_date()`で`None`に変換し、欠損値と0を区別します。
 
-SQLAlchemy Model を定義する。
-Schema 変更は Alembic Migration を通す。
+既存Modelには主キーとは別に銘柄コード・日付等のUniqueConstraintが定義されています。Schema変更はAlembicのrevisionを確認してから適用します。
 
-### batches
+## 7. cache_mgmt：進捗管理
 
-期間指定のデータ取得・DB 更新など、CLI から実行するバッチ処理の入口を置く。
-外部 API / DB 処理本体は Client / Service / Repository に委譲する。
+主なカラム:
+
+```text
+id                YYYYMMDD-HHMMSS（15文字）
+from_date         開始日
+to_date           終了日
+company_code      個別取得時の銘柄コード（省略可）
+status_master     上場銘柄
+status_dailyBar   日足株価
+status_valuation  バリュエーション
+status_summary    財務サマリー
+remarks           直近のエラーメッセージ等（最大300文字）
+updated_at        DB更新日時
+```
+
+Datasetステータスは`Waiting`、`Running`、`Complete`、`Error`（実行対象外は`NULL`）です。
+
+- 作成時に対象Datasetのステータスを`Waiting`に設定。
+- 個々のDataset開始前に`Running`、正常終了で`Complete`。
+- 例外時に対象Datasetを`Error`にし、例外文字列を`remarks`に最大300文字で保存。
+- キャッシュ制御は管理レコードの`from_date`、`to_date`、`company_code`を使用。
+- `Waiting`/`Running`/`Error`のDatasetは、同じ管理IDで再度起動した際に処理対象となる。`Complete`はスキップする。
+- 管理レコードの`create`/`update`/`delete`は現状、Repository内部で`commit()`を実行する設計。
+
+**留意:** `Running`を再実行対象に含めるため、同じ管理IDを同時に起動させると重複実行の可能性があります。これは運用上の制約であり、排他ロック機構は実装済みとみなさないでください。
+
+## 8. 起動APIと実行フロー
+
+Router: `backend/app/api/cache_batch.py`  
+Endpoint: **`POST /batches/jquants/cache/plain`**  
+HTTP Status: **202 Accepted**
+
+リクエストSchema (`CacheBatchRequest`):
+
+```json
+{
+  "fromDate": "2026-10-01",
+  "toDate": "2026-10-24",
+  "code": "13010",
+  "mgmtId": null
+}
+```
+
+- `fromDate`/`toDate`は必須。
+- `code`は省略時`""`（全銘柄）。
+- `mgmtId`は省略・`null`・空文字列の場合、API受付側で新規管理レコードを作成。
+- 既存`mgmtId`指定では、その管理レコードに保存済みの条件で再実行する。
+
+レスポンス例:
+
+```json
+{
+  "message": "バッチ起動を受け付けました",
+  "mgmtId": "20261025-195000"
+}
+```
+
+ここでの管理IDは形式例であり、実際に発行した値ではありません。
+
+```text
+FastAPI Router
+  ├─ 新規管理IDが必要ならCacheMgmtService.create()
+  ├─ BackgroundTasks.add_task(run_cache, mgmtId)
+  └─ 202 + mgmtIdを返却
+            ↓（レスポンス送信後）
+         run_cache()
+            ↓
+       jquants_cache()
+         1. 管理レコード取得
+         2. 上場銘柄マスタ更新（対象ステータスのみ）
+         3. 対象銘柄リスト取得（全件または指定code）
+         4. 日足株価キャッシュ
+         5. バリュエーションキャッシュ
+         6. 財務サマリーキャッシュ
+         7. Dataset単位でComplete/Errorを記録
+```
+
+## 9. Transaction・Error設計
+
+- 各Datasetの銘柄ごとの取得処理では`with SessionLocal.begin() as db:`を使い、**その銘柄に対するDatasetの登録処理が成功した場合にcommit**。例外ではそのブロック内の処理をrollback。
+- `db.merge()`のみではcommitしない。J-QuantsのRepositoryに毎行`commit()`は置かない。
+- 進捗管理テーブルは別Session/別commitなので、処理本体が失敗してもErrorの状態を残せる設計。
+- **全バッチ一括トランザクションではない**。既に処理を終えた別銘柄・別Datasetの確定データは、後続の失敗では取り消されない。
+- `jquants_cache()`は`{status: success|error, message}`を返し、`run_cache()`はerror時に例外を送出してログを記録する。
+- `BackgroundTasks`はアプリケーション内のバックグラウンドタスクであり、Dockerコンテナ停止・再起動後に処理の継続・自動再開を保証しない。
+
+## 10. マイグレーションと動作確認
+
+関連するAlembic revisionはGitHubの`backend/alembic/versions/`を確認。キャッシュ管理テーブルの導入・修正のrevisionとして`70d536cc789d`、`1659bc942177`、`c9a27d03baec`、`3b15924e084c`が存在し、`29992610a0a9`は空のupgrade/downgradeです。
+
+実装変更後の基本確認:
+
+```powershell
+docker compose up -d
+docker compose exec backend alembic current
+docker compose exec backend alembic heads
+docker compose exec backend alembic upgrade head
+docker compose ps
+```
+
+起動APIは`http://localhost:8000/docs`のSwagger UIでも確認できます。管理テーブルと保存結果の確認にはTablePlusを利用します。
+
+## 11. 既存機能と将来の責務
+
+- **User Domain:** CRUD、検索、フィルタ、ソート、ページングおよびReact UIの実装を維持。
+- **EDINET Legacy:** CSV取得可能書類の棚卸し、日付範囲Refresh、DB保存、CLI Batchを実装済み。2026-09-26以降の主データソースはJ-Quantsへ移行。EDINETのコード・テーブルは維持し、財務解析拡張は行わない方針。
+- **Screening:** 価格変動率、52週高値・安値、52週高値からの下落率、PER/PBR/配当利回り、業績と株価の乖離などの判定は今後の業務ロジック/UI対象。
+
+## 12. 現時点で保留する事項・制約
+
+- ページネーション対応：ユーザーの取得確認により現時点では保留。API仕様で将来分割が発生しない保証を確認したものではない。
+- 管理IDの同一秒衝突対策：発生頻度が低いとして意図的に保留。
+- 上場廃止銘柄をマスタから除外する仕組み：別途検討。
+- 入力日付の範囲検証、管理IDの存在事前確認、長時間バッチの排他・中断・復旧、進捗確認用のREST GET API：必要性に応じて今後検討。
+- J-Quantsキャッシュ機能は実装済み。全銘柄・長期間の稼働性能や障害復旧まで本資料作成時に検証したものではない。
 
 ---
 
-## 7. J-Quants Domain
-
-2026-09-26 から、J-Quants を BizSC の主データソースとして採用する。
-
-目的:
-
-```text
-J-Quants
-  ↓
-上場銘柄
-日足株価
-財務 Summary
-その他必要データ
-  ↓
-PostgreSQL
-  ↓
-BizSC Screening
-```
-
-契約プランは現時点では未確定。
-Light / Standard 等のプラン差に依存する機能は、契約内容と最新の公式 API 仕様を確認してから実装対象を確定する。
-
-実装をプラン名に密結合させず、「利用可能な Dataset を取得する」構造にする。
-
----
-
-## 8. J-Quants 取得対象の優先順位
-
-最初に扱うデータ:
-
-```text
-1. 上場銘柄情報
-2. 日足株価
-3. 財務情報 Summary
-```
-
-その後、契約プランと BizSC の要件に応じて:
-
-```text
-4. 指数データ
-5. 決算発表予定
-6. 信用取引 / 空売り等
-7. その他 Dataset
-```
-
-を追加する。
-
-詳細 BS / PL / CF は Premium 前提にしない。
-まず Summary で作れるスクリーニングを優先する。
-
----
-
-## 9. J-Quants DB 設計方針
-
-最初から全 Table を確定しない。
-実 API Response を小範囲で確認し、Column と Unique Constraint を決めてから Migration を作る。
-
-想定 Domain:
-
-```text
-JQuantsListedIssue
-JQuantsDailyQuote
-JQuantsFinancialSummary
-JQuantsSyncRun
-```
-
-Table 名・Column は Phase 01 で実レスポンス確認後に確定する。
-
-重要方針:
-
-- 証券コードは文字列として扱う
-- API の生 Response をそのまま巨大 JSON として保存することを目的にしない
-- Screening に必要な項目を正規化して保存する
-- 元データとの追跡に必要な識別子・日付は保持する
-- Decimal が必要な数値で安易に `float` を使わない
-- 欠損値と 0 を区別する
-- 株価と財務は別 Domain / Table とする
-- 再取得時に重複しない Unique Key を設計する
-
----
-
-## 10. Screening 指標
-
-### 株価系
-
-- 最新株価
-- 1か月 / 3か月 / 6か月 / 1年騰落率
-- 52週高値
-- 52週安値
-- 52週高値からの下落率
-- 出来高
-- 時価総額
-
-### 財務系
-
-- 売上高
-- 営業利益
-- 経常利益
-- 純利益
-- EPS
-- BPS
-- 総資産
-- 純資産
-- 自己資本比率
-- 営業 CF
-- 投資 CF
-- 財務 CF
-- FCF
-- ROE
-- ROA
-- 営業利益率
-- 売上 / 利益成長率
-- PER
-- PBR
-
-「API から直接取得する値」と「BizSC で計算する指標」を分離する。
-
----
-
-## 11. データ履歴方針
-
-過去データは DB に Cache し、毎回すべてを外部 API から再取得しない。
-
-過去10年を目標としてきたが、J-Quants の利用可能期間は契約プランに依存するため、最終的な履歴年数はプラン確定後に決める。
-
-基本方針:
-
-```text
-初期投入
-→ 取得可能な過去履歴を範囲指定で Cache
-
-通常運用
-→ 最新分を定期追加
-
-必要時
-→ 指定期間を Refresh
-```
-
-一度に長期間を処理することを前提にせず、小範囲で検証してから期間を広げる。
-
----
-
-## 12. J-Quants Error / Transaction 方針
-
-外部 API では以下を区別できる構造にする。
-
-- 認証設定不足
-- HTTP Error
-- Rate Limit
-- Timeout
-- Invalid Response
-- Validation Error
-
-DB Refresh では:
-
-```text
-外部 API 取得
-↓
-Response Validation
-↓
-DB 更新
-↓
-commit
-```
-
-を基本とし、不正 Response を「0件」と誤認して正常データを削除しない。
-
-複数日処理の場合、必要に応じて日単位 / Dataset 単位で Transaction を分離する。
-
----
-
-## 13. J-Quants 認証情報
-
-認証方式・Environment Variable 名は、実装開始時に最新の J-Quants 公式 API 仕様を確認して確定する。
-
-原則:
-
-```text
-Secret
-→ .env / Environment Variable
-
-Source Code
-→ Secret を直接記述しない
-```
-
-認証情報を Git / Log / Error Message に出さない。
-
----
-
-## 14. EDINET Legacy Status
-
-EDINET は 2026-09-26 で主データソースから外す。
-
-既存実装は Repository に残っている。
-
-主な Legacy File:
-
-```text
-backend/app/clients/edinet.py
-backend/app/services/edinet_inventory.py
-backend/app/repositories/edinet_inventory.py
-backend/app/models/edinet_document.py
-backend/app/models/edinet_inventory_run.py
-backend/app/batches/edinet_inventory.py
-backend/tests/test_edinet_client.py
-backend/tests/test_edinet_inventory.py
-backend/tests/test_edinet_inventory_batch.py
-```
-
-既存 Table:
-
-```text
-edinet_documents
-edinet_inventory_runs
-```
-
-確認済み実績:
-
-- 日単位 Refresh
-- 範囲指定 Refresh
-- CLI Batch
-- `docInfoEditStatus == "1"` 除外
-- 2026-07-01 ～ 2026-07-31 の31日処理
-- `run_days = 31`
-- `completed_days = 31`
-- `failed_days = 0`
-- `document_count = 1848`
-
-今後:
-
-```text
-EDINET CSV ZIP 取得
-XBRL / CSV 財務解析
-EDINET ベースの Screening
-```
-
-は進めない。
-
-既存 EDINET Table / Migration / Code を今すぐ削除する必要はない。
-J-Quants 移行が安定してから、削除するか Legacy として残すかを別途判断する。
-
----
-
-## 15. User Domain
-
-既存 User CRUD は維持する。
-
-```text
-POST   /users
-GET    /users
-GET    /users/{user_id}
-PATCH  /users/{user_id}
-DELETE /users/{user_id}
-```
-
-Frontend の User UI も既存機能として維持する。
-
----
-
-## 16. Frontend 方針
-
-React + TypeScript + Vite + Bootstrap を継続する。
-
-今後の主要画面候補:
-
-```text
-銘柄一覧
-Screening 条件設定
-Screening 結果
-銘柄詳細
-株価 Chart
-財務推移
-比較画面
-```
-
-J-Quants のデータ取得基盤が完成するまでは、Frontend の Screening UI を先行しすぎない。
-
----
-
-## 17. Migration / Test 方針
-
-Migration:
-
-```text
-SQLAlchemy Model変更
-↓
-alembic revision --autogenerate
-↓
-Migration確認
-↓
-alembic upgrade head
-↓
-TablePlus確認
-```
-
-J-Quants Table は、API Response を確認してから作る。
-
-Test:
-
-- Client は HTTP を mock
-- Service は Mapping / Refresh / Transaction / rollback / 重複防止を確認
-- Batch は CLI / Service 呼び出し / Session close を確認
-- 実 API 接続は Unit Test と分け、小件数で確認する
-
----
-
-## 18. 開発進行ルール
-
-```text
-Step
-↓
-実装
-↓
-Unit Test
-↓
-小範囲の実 API 確認
-↓
-DB 確認
-↓
-次 Step
-```
-
-- 1 Step ずつ進める
-- 既存コードを GitHub で確認してから変更
-- 不要な Library / Infrastructure を追加しない
-- 外部 API を大量に叩く前に小範囲で検証
-- Error 原因を推測で確定しない
-- Secret を出さない
-- Commit / Push は区切りの良い地点
-- 正確性を優先する
-
----
-
-## 19. 次の Architecture Step
-
-```text
-J-Quants Phase 01
-
-Step JQ-1
-契約プラン / 利用可能 Dataset / 認証方式 / 取得可能期間を確認
-
-Step JQ-2
-backend/app/clients/jquants.py を追加
-最小の実 API 接続を確認
-
-Step JQ-3
-上場銘柄情報を取得し、DB Model / Repository / Service を設計
-
-Step JQ-4
-日足株価 DB Cache
-
-Step JQ-5
-財務 Summary DB Cache
-
-Step JQ-6
-Screening 指標計算
-```
-
-まず Client と上場銘柄 Master から開始する。
-
-以上。
+ドキュメントの役割: `architecture.md`＝構成・実装方針、`handover_phase.md`＝引継ぎ・直近作業、`project-overview.md`＝目的・進捗・ロードマップ。

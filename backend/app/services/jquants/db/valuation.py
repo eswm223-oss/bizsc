@@ -1,5 +1,6 @@
 from app.models import JQuantsValuation
-from app.repositories.valuation import JQuantsValuationRepository, SearchRequest
+from app.repositories.valuation import JQuantsValuationRepository
+from app.schemas.jqunats import SearchRequest
 from sqlalchemy.orm import Session
 
 
@@ -25,7 +26,19 @@ class Valuation_service:
         self,
         db: Session,
         search: SearchRequest | None = None,
+        sort_by: str = "id",
+        sort_order: str = "asc",
         page: int = 1,
         limit: int = 50,
-    ) -> list[JQuantsValuation] | None:
-        return self.repository.getAllSearch(db, search, page, limit)
+    ) -> tuple[list[JQuantsValuation], int]:
+
+        resList = self.repository.getAllSearch(
+            db=db,
+            search=search,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            limit=limit,
+        )
+        resToral = self.repository.count_all(db=db, search=search)
+        return resList, resToral

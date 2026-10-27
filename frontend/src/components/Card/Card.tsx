@@ -14,7 +14,7 @@ function Card({ title, children, className = "", ...props }: CardProps) {
         </div>
       )}
 
-      <div className="card-body">{children}</div>
+      <div className="card-body ">{children}</div>
     </section>
   );
 }

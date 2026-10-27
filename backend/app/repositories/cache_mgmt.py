@@ -1,7 +1,7 @@
 from datetime import date
 
 from app.models import CacheMgmt
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 
@@ -47,7 +47,7 @@ class CacheMgmtRepository:
         search: date | None = None,
         page: int = 1,
         limit: int = 50,
-    ) -> list[CacheMgmt] | None:
+    ) -> list[CacheMgmt]:
         statement = select(CacheMgmt)
 
         # ==========サーチ==========
@@ -61,3 +61,17 @@ class CacheMgmtRepository:
         statement = statement.order_by(CacheMgmt.id.desc()).offset(offset).limit(limit)
 
         return list(db.scalars(statement).all())
+
+    def count_all(
+        self,
+        db: Session,
+        search: date | None = None,
+    ) -> int:
+        statement = select(func.count(CacheMgmt.id))
+
+        if search:
+            statement = statement.where(CacheMgmt.from_date <= search).where(
+                CacheMgmt.to_date >= search
+            )
+
+        return db.scalar(statement) or 0

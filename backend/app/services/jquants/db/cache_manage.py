@@ -42,7 +42,6 @@ class CacheMgmtService:
             status_valuation="Waiting" if set.run_valuation else None,
             status_summary="Waiting" if set.run_summary else None,
         )
-        print(f"sorce:{sorce}")
         return self.repository.create(db, sorce)
 
     def getById(self, db: Session, id: str) -> CacheMgmt | None:
@@ -87,3 +86,14 @@ class CacheMgmtService:
         if sorce is None:
             return
         self.repository.delete(db, sorce)
+
+    def getAllSearch(
+        self,
+        db: Session,
+        search: date | None = None,
+        page: int = 1,
+        limit: int = 50,
+    ) -> tuple[list[CacheMgmt], int]:
+        resList = self.repository.getAllSearch(db, search, page, limit)
+        resTotal = self.repository.count_all(db, search)
+        return resList, resTotal

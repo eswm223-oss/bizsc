@@ -10,6 +10,8 @@ import UserListPage from "../pages/UserListPage.tsx";
 import UserDetailPage from "../pages/UserDetailPage.tsx";
 import UserCreatePage from "../pages/UserCreatePage.tsx";
 import UserEditPage from "../pages/UserEditPage";
+import MasterList from "../pages/MasterList.tsx";
+import TestScreen from "../pages/Test.tsx";
 
 function AppRoutes() {
   return (
@@ -20,6 +22,8 @@ function AppRoutes() {
         <Route path="/users/new" element={<UserCreatePage />} />
         <Route path="/users/:userId" element={<UserDetailPage />} />
         <Route path="/users/:userId/edit" element={<UserEditPage />} />
+        <Route path="/jquants/master" element={<MasterList />} />
+        <Route path="/test" element={<TestScreen />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

@@ -1,8 +1,8 @@
 from app.models import JQuantsFinancialSummary
 from app.repositories.financial_summary import (
     JQuantsFinancialSummaryRepository,
-    SearchRequest,
 )
+from app.schemas.jqunats import SearchRequest
 from sqlalchemy.orm import Session
 
 
@@ -37,7 +37,19 @@ class Financial_summary_service:
         self,
         db: Session,
         search: SearchRequest | None = None,
+        sort_by: str = "id",
+        sort_order: str = "asc",
         page: int = 1,
         limit: int = 50,
-    ) -> list[JQuantsFinancialSummary] | None:
-        return self.repository.getAllSearch(db, search, page, limit)
+    ) -> tuple[list[JQuantsFinancialSummary], int]:
+
+        resList = self.repository.getAllSearch(
+            db=db,
+            search=search,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            limit=limit,
+        )
+        resToral = self.repository.count_all(db=db, search=search)
+        return resList, resToral
