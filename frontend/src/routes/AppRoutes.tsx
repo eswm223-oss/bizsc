@@ -4,24 +4,28 @@
 
 import { Route, Routes } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout.tsx";
+import MainLayoutMantine from "../layouts/MainLayoutMantine.tsx";
 import NotFoundPage from "../pages/NotFoundPage";
-import HomePage from "../pages/HomePage.tsx";
-import UserListPage from "../pages/UserListPage.tsx";
-import UserDetailPage from "../pages/UserDetailPage.tsx";
-import UserCreatePage from "../pages/UserCreatePage.tsx";
-import UserEditPage from "../pages/UserEditPage";
+import HomePageMantine from "../pages/HomePageMantine.tsx";
+import UserListPageMantine from "../pages/UserListPageMantine.tsx";
+import UserDetailPageMantine from "../pages/UserDetailPageMantine.tsx";
+import UserCreatePageMantine from "../pages/UserCreatePageMantine.tsx";
+import UserEditPageMantine from "../pages/UserEditPageMantine.tsx";
 import MasterList from "../pages/MasterList.tsx";
 import TestScreen from "../pages/Test.tsx";
 
 function AppRoutes() {
   return (
     <Routes>
+      <Route element={<MainLayoutMantine />}>
+        <Route path="/" element={<HomePageMantine />} />
+        <Route path="/users" element={<UserListPageMantine />} />
+        <Route path="/users/new" element={<UserCreatePageMantine />} />
+        <Route path="/users/:userId" element={<UserDetailPageMantine />} />
+        <Route path="/users/:userId/edit" element={<UserEditPageMantine />} />
+      </Route>
+
       <Route element={<MainLayout />}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/users" element={<UserListPage />} />
-        <Route path="/users/new" element={<UserCreatePage />} />
-        <Route path="/users/:userId" element={<UserDetailPage />} />
-        <Route path="/users/:userId/edit" element={<UserEditPage />} />
         <Route path="/jquants/master" element={<MasterList />} />
         <Route path="/test" element={<TestScreen />} />
       </Route>

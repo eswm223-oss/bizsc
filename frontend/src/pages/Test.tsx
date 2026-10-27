@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { getMaster } from "../api/jquants";
 import type { Master } from "../types/jquants";
-import Loading from "../components/Loading/Loading";
 import Button from "../components/Button/Button";
 import {
   ListedIssueTable,
@@ -11,11 +10,11 @@ import {
 const TestScreen = () => {
   const [masterList, setMasterList] = useState<Master[]>([]);
   const [testList, setTestList] = useState<ListedIssue[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("id");
-  const [sortOrder, setSortOrder] = useState("asc");
-  const [page, setPage] = useState(1);
+  const [, setIsLoading] = useState(true);
+  const [search] = useState("");
+  const [sortBy] = useState("id");
+  const [sortOrder] = useState("asc");
+  const [page] = useState(1);
   const [limit] = useState(50);
   const [total, setTotal] = useState(0);
 
