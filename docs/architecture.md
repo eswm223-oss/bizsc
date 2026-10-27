@@ -1,7 +1,7 @@
 # BizSC Architecture
 
-更新日: 2026-10-25  
-確認したGitHubコミット: [`jquants_chche_process_fix_4`](https://github.com/eswm223-oss/bizsc/commit/1a4f7a9d6804daf8d56340f1c1c5a8d0eb1747ca)
+更新日: 2026-10-27  
+確認したGitHubソースのコミット（本更新前）: [`6b577b8`](https://github.com/eswm223-oss/bizsc/commit/6b577b832beb6f661a97a87fd697fa3b9dbaf8ae)
 
 ## 1. 目的と読み方
 
@@ -45,7 +45,7 @@ jquants_cache(mgmtId) ← cache_mgmt（対象・期間・実行状態）
 |---|---|
 | Backend | Python 3.12、FastAPI、SQLAlchemy、Pydantic、httpx、Alembic |
 | Database | PostgreSQL 17、psycopg |
-| Frontend | React、TypeScript、Vite、React Router、Axios、Bootstrap |
+| Frontend | React 19、TypeScript、Vite、React Router、Axios、Mantine 9（UI）、TanStack Table v9（一部一覧） |
 | 開発環境 | Windows、Cursor、GitHub Desktop、Docker Desktop、Docker Compose、TablePlus |
 | Backendテスト基盤 | pytest |
 
@@ -53,6 +53,18 @@ jquants_cache(mgmtId) ← cache_mgmt（対象・期間・実行状態）
 - GitHub: <https://github.com/eswm223-oss/bizsc>
 - Compose: `backend` (8000)、`frontend` (5173)、`db` (5432)
 - Windows上の別PostgreSQLサービスが5432番ポートを占有すると、Docker側との競合が発生し得ます。
+
+### 3.1 Frontend UI（2026-10-27 時点）
+
+- **BootstrapからMantineへ移行。** `frontend/package.json` に `@mantine/core: ^9.7.4` と `@mantine/hooks: ^9.7.4` があり、`bootstrap` 依存は存在しない。
+- `frontend/src/main.tsx` で `@mantine/core/styles.css` を読み込み、`MantineProvider defaultColorScheme="auto"` の内側に `BrowserRouter` と `App` を配置。アプリ全体のテーマ設定はここで行う。
+- `frontend/src/routes/AppRoutes.tsx` では、ホーム `/` とユーザーCRUD `/users...` を `MainLayoutMantine` および `*PageMantine.tsx` に接続。ユーザー入力には `components/UserForm/UserFormMantine.tsx` を使用。
+- `MainLayoutMantine.tsx` は Mantine `AppShell`、Header、Navbar、Footer、レスポンシブナビゲーション、ライト／ダーク切替を実装。
+- `/jquants/master` と `/test` は旧 `MainLayout` に残る。**すべての画面がMantine化済みとはみなさない。** 旧ページ／旧UIコンポーネントのソースは一部残存している。
+- `@tanstack/react-table: ^9.3.1` は継続使用。現時点でTanStack Tableを使用するのは主に `components/test/TanstackTable.tsx`。ユーザー一覧はMantine `Table` と `Pagination` を使用する。
+- UIコンポーネントは原則Mantine標準品を直接使い、Propsで調整。独自CSSは必要最小限にとどめる。
+
+利用者が2026-10-27に `docker compose exec frontend npm run build` の成功と画面の正常動作を確認。ビルド時にはJSチャンクが500KBを超えるサイズ警告が出たが、ビルドエラーではない。本資料の更新作業ではビルド・ブラウザ操作を再実行していない。
 
 ## 4. Backendディレクトリ・役割
 
@@ -246,7 +258,7 @@ docker compose ps
 
 ## 11. 既存機能と将来の責務
 
-- **User Domain:** CRUD、検索、フィルタ、ソート、ページングおよびReact UIの実装を維持。
+- **User Domain:** CRUD、検索、フィルタ、ソート、ページングを維持。ホーム・ユーザー系はMantine版へ切替済み（サンプル機能）。
 - **EDINET Legacy:** CSV取得可能書類の棚卸し、日付範囲Refresh、DB保存、CLI Batchを実装済み。2026-09-26以降の主データソースはJ-Quantsへ移行。EDINETのコード・テーブルは維持し、財務解析拡張は行わない方針。
 - **Screening:** 価格変動率、52週高値・安値、52週高値からの下落率、PER/PBR/配当利回り、業績と株価の乖離などの判定は今後の業務ロジック/UI対象。
 
