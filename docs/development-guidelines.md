@@ -16,11 +16,11 @@ BizSC
 
 目的：
 
-業務管理系Webアプリケーションの基盤を構築し、
-今後必要な業務機能を段階的に追加できる構成にする。
+日本株の株式スクリーニングWebアプリケーションを開発し、
+J-Quantsの株価・財務データをキャッシュして条件検索・比較に活用する。
 
-現時点では基礎的なWebアプリケーション構成が完成しているため、
-今後追加する具体的な業務機能については、その都度設計して実装する。
+ユーザー管理画面はReact/Backend連携を検証するためのサンプルであり、
+主機能は今後段階的に開発する株式スクリーニングとする。
 
 
 # 2. 開発環境
@@ -139,7 +139,8 @@ pytestによってAPIやBackend処理を確認する。
 - Vite
 - React Router
 - Axios
-- Bootstrap
+- Mantine 9（UIコンポーネント／レイアウト／テーマ）
+- TanStack Table v9（必要な画面のデータテーブル処理）
 
 基本構成：
 
@@ -173,13 +174,11 @@ UserEditPage
 
 例：
 
-Button
-Input
-Card
-Badge
-Loading
-ErrorMessage
-UserForm
+UserFormMantine（ユーザー画面のフォーム）
+TanstackTable（テスト画面のテーブル処理）
+
+Button / Input / Card等の旧共通ラッパーはソースに残る場合があるが、
+新規画面では原則Mantine標準コンポーネントを直接importして利用する。
 
 
 ## api
@@ -208,21 +207,28 @@ React RouterによるURLとPageの対応を管理する。
 
 # 5. UI方針
 
-UIについてはBootstrapを基本とする。
+UIはMantineを基本とする（2026-10-27移行）。Bootstrapパッケージは削除済み。
 
 優先順位：
 
-1. Bootstrap標準クラス
-2. Bootstrap Grid / Utility
-3. 共通React Component
-4. 必要な場合のみ独自CSS
+1. Mantineの標準コンポーネント（Button、TextInput、Card、Table、AppShell等）
+2. MantineのProps／テーマ設定／標準レイアウト
+3. 複数画面で実際に共通化の必要があるReactコンポーネント
+4. 必要な場合のみ独自CSS／CSS Modules
 
-独自CSSを大量に作らない。
+CSSを大量に作らず、React側のUIコンポーネントで見た目を統一する。
+フォームはMantine固有のonChangeや値の型を確認し、既存のAPI連携・バリデーションを維持する。
+スクリーンサイズに応じた表示とライト／ダークテーマを考慮する。
 
-Button、Input、Card、Badge、Loading、Error表示などは
-可能な限り共通Componentを利用する。
+`frontend/src/main.tsx` で `MantineProvider` を1回設定済み。各画面では使うコンポーネントだけをimportする。
+`frontend/src/layouts/MainLayoutMantine.tsx` は `AppShell` とテーマ切替を提供する。
+`frontend/src/routes/AppRoutes.tsx` ではホーム・ユーザー画面がMantine版を利用し、
+`/jquants/master` と `/test` は従来の `MainLayout` を使用しているため、変更時には影響範囲を確認する。
 
-過度なデザインは行わず、
+TanStack Table v9のソート・ページング等のロジックは、見た目の変更だけを理由に作り直さない。
+v8とはAPIが異なるため、インストール済みのv9と既存コードに合わせる。
+
+ユーザー画面はサンプル。過度なデザインは行わず、
 業務アプリとして分かりやすく操作しやすいUIを優先する。
 
 
