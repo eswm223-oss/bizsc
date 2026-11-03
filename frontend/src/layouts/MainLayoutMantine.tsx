@@ -1,25 +1,19 @@
 import { useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import {
   ActionIcon,
   AppShell,
   Burger,
   Anchor,
   Group,
-  NavLink as MantineNavLink,
-  Text,
   Title,
   Tooltip,
   useComputedColorScheme,
   useMantineColorScheme,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-
-const navItems = [
-  { to: "/", label: "ホーム", end: true },
-  { to: "/users", label: "ユーザー" },
-];
-
+import { Navbar } from "../components/Navbar";
+import { IconSun, IconMoon } from "@tabler/icons-react";
 function ColorSchemeToggle() {
   const { setColorScheme } = useMantineColorScheme();
   const computedColorScheme = useComputedColorScheme("light");
@@ -33,7 +27,7 @@ function ColorSchemeToggle() {
         aria-label="カラーテーマを切り替える"
         onClick={() => setColorScheme(isDark ? "light" : "dark")}
       >
-        {isDark ? "明" : "暗"}
+        {isDark ? <IconSun /> : <IconMoon />}
       </ActionIcon>
     </Tooltip>
   );
@@ -43,7 +37,6 @@ function MainLayoutMantine() {
   const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] =
     useDisclosure(false);
   const [desktopOpened, setDesktopOpened] = useState(true);
-  const location = useLocation();
 
   return (
     <AppShell
@@ -79,37 +72,11 @@ function MainLayoutMantine() {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="md">
-        {navItems.map((item) => {
-          const active = item.end
-            ? location.pathname === item.to
-            : location.pathname === item.to ||
-              location.pathname.startsWith(`${item.to}/`);
-
-          return (
-            <MantineNavLink
-              key={item.to}
-              component={NavLink}
-              to={item.to}
-              label={item.label}
-              active={active}
-              onClick={closeMobile}
-            />
-          );
-        })}
-      </AppShell.Navbar>
+      <Navbar closeMobile={closeMobile} />
 
       <AppShell.Main>
         <Outlet />
       </AppShell.Main>
-
-      <AppShell.Footer>
-        <Group h="100%" px="md" justify="center">
-          <Text size="xs" c="dimmed">
-            BizSC
-          </Text>
-        </Group>
-      </AppShell.Footer>
     </AppShell>
   );
 }

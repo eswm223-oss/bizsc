@@ -42,42 +42,41 @@ class JQuantsFinancialSummaryRepository:
         search: SearchRequest | None = None,
         sort_by: str = "id",
         sort_order: str = "asc",
-        page: int = 1,
-        limit: int = 50,
+        page: int | None = None,
+        limit: int | None = None,
     ) -> list[JQuantsFinancialSummary]:
         statement = select(JQuantsFinancialSummary)
 
         # ==========サーチ==========
         if search:
-            statement = (
-                statement.outerjoin(
-                    JQuantsListedIssue,
-                    JQuantsFinancialSummary.code == JQuantsListedIssue.code,
-                )
-                .where(
+            statement = statement.outerjoin(
+                JQuantsListedIssue,
+                JQuantsFinancialSummary.code == JQuantsListedIssue.code,
+            )
+
+            if search.fromDate and search.toDate:
+                statement = statement.where(
                     JQuantsFinancialSummary.disclosure_date.between(
-                        search.dateFrom, search.dateTo
+                        search.fromDate, search.toDate
                     )
                 )
-                .where(
+            if search.keyword:
+                statement = statement.where(
                     or_(
                         JQuantsFinancialSummary.code.like(f"%{search.keyword}%"),
                         JQuantsListedIssue.company_name.like(f"%{search.keyword}%"),
                         JQuantsListedIssue.company_name_en.like(f"%{search.keyword}%"),
                     )
                 )
-            )
+            if search.targetDate:
+                statement = statement.where(
+                    JQuantsFinancialSummary.disclosure_date == search.targetDate
+                )
 
         # ==========ページング==========
-        offset = (page - 1) * limit
-        statement = (
-            statement.order_by(
-                JQuantsFinancialSummary.code.asc(),
-                JQuantsFinancialSummary.disclosure_date.desc(),
-            )
-            .offset(offset)
-            .limit(limit)
-        )
+        if page and limit:
+            offset = (page - 1) * limit
+            statement = statement.offset(offset).limit(limit)
 
         # ==========ソート==========
         sort_columns = {
@@ -155,23 +154,28 @@ class JQuantsFinancialSummaryRepository:
         statement = select(func.count(JQuantsFinancialSummary.id))
 
         if search:
-            statement = (
-                statement.outerjoin(
-                    JQuantsListedIssue,
-                    JQuantsFinancialSummary.code == JQuantsListedIssue.code,
-                )
-                .where(
+            statement = statement.outerjoin(
+                JQuantsListedIssue,
+                JQuantsFinancialSummary.code == JQuantsListedIssue.code,
+            )
+
+            if search.fromDate and search.toDate:
+                statement = statement.where(
                     JQuantsFinancialSummary.disclosure_date.between(
-                        search.dateFrom, search.dateTo
+                        search.fromDate, search.toDate
                     )
                 )
-                .where(
+            if search.keyword:
+                statement = statement.where(
                     or_(
                         JQuantsFinancialSummary.code.like(f"%{search.keyword}%"),
                         JQuantsListedIssue.company_name.like(f"%{search.keyword}%"),
                         JQuantsListedIssue.company_name_en.like(f"%{search.keyword}%"),
                     )
                 )
-            )
+            if search.targetDate:
+                statement = statement.where(
+                    JQuantsFinancialSummary.disclosure_date == search.targetDate
+                )
 
         return db.scalar(statement) or 0

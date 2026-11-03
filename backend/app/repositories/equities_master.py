@@ -1,4 +1,5 @@
 from app.models import JQuantsListedIssue
+from app.schemas.jqunats import SearchRequest
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -24,27 +25,34 @@ class JQuantsListedIssueRepository:
     def getAllSearch(
         self,
         db: Session,
-        search: str | None = None,
+        search: SearchRequest | None = None,
         sort_by: str = "id",
         sort_order: str = "asc",
-        page: int = 1,
-        limit: int = 50,
+        page: int | None = None,
+        limit: int | None = None,
     ) -> list[JQuantsListedIssue]:
         statement = select(JQuantsListedIssue)
 
         # ==========サーチ==========
         if search:
-            statement = statement.where(
-                or_(
-                    JQuantsListedIssue.code.like(f"%{search}%"),
-                    JQuantsListedIssue.company_name.like(f"%{search}%"),
-                    JQuantsListedIssue.company_name_en.like(f"%{search}%"),
+            if search.keyword:
+                statement = statement.where(
+                    or_(
+                        JQuantsListedIssue.code.like(f"%{search.keyword}%"),
+                        JQuantsListedIssue.company_name.like(f"%{search.keyword}%"),
+                        JQuantsListedIssue.company_name_en.like(f"%{search.keyword}%"),
+                    )
                 )
-            ).order_by(JQuantsListedIssue.code.asc())
-
+            if search.targetDate:
+                statement = statement.where(
+                    JQuantsListedIssue.date == search.targetDate
+                )
+            if search.code:
+                statement = statement.where(JQuantsListedIssue.code == search.code)
         # ==========ページング==========
-        offset = (page - 1) * limit
-        statement = statement.offset(offset).limit(limit)
+        if page and limit:
+            offset = (page - 1) * limit
+            statement = statement.offset(offset).limit(limit)
 
         # ==========ソート==========
         sort_columns = {
@@ -90,17 +98,24 @@ class JQuantsListedIssueRepository:
     def count_all(
         self,
         db: Session,
-        search: str | None = None,
+        search: SearchRequest | None = None,
     ) -> int:
         statement = select(func.count(JQuantsListedIssue.id))
 
         if search:
-            statement = statement.where(
-                or_(
-                    JQuantsListedIssue.code.like(f"%{search}%"),
-                    JQuantsListedIssue.company_name.like(f"%{search}%"),
-                    JQuantsListedIssue.company_name_en.like(f"%{search}%"),
+            if search.keyword:
+                statement = statement.where(
+                    or_(
+                        JQuantsListedIssue.code.like(f"%{search.keyword}%"),
+                        JQuantsListedIssue.company_name.like(f"%{search.keyword}%"),
+                        JQuantsListedIssue.company_name_en.like(f"%{search.keyword}%"),
+                    )
                 )
-            ).order_by(JQuantsListedIssue.code.asc())
+            if search.targetDate:
+                statement = statement.where(
+                    JQuantsListedIssue.date == search.targetDate
+                )
+            if search.code:
+                statement = statement.where(JQuantsListedIssue.code == search.code)
 
         return db.scalar(statement) or 0

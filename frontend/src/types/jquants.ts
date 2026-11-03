@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
 
 export type Master = {
+  id: string;
   date: Date | undefined;
   code: string | undefined;
   company_name: string | undefined;
@@ -25,6 +26,7 @@ export type MasterListRsponse = {
 };
 
 export type DailyQuote = {
+  id: string;
   date: Date;
   code: string;
   open: Decimal | undefined;
@@ -52,6 +54,7 @@ export type DailyQuoteListRsponse = {
 };
 
 export type Valuation = {
+  id: string;
   date: Date;
   code: string;
   eps: Decimal | undefined;
@@ -73,6 +76,7 @@ export type ValuationListRsponse = {
 };
 
 export type Summary = {
+  id: string;
   disclosure_date: Date;
   disclosure_time: string | undefined;
   code: string;
@@ -138,6 +142,5 @@ export type SummaryListRsponse = {
 
 export type SearchRequest = {
   keyword: string | undefined;
-  dateFrom: Date | undefined;
-  dateTo: Date | undefined;
+  date: string | null;
 };

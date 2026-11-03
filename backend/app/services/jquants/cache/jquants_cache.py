@@ -1,5 +1,5 @@
 import time
-from datetime import date
+from datetime import date, timedelta
 from typing import Literal, TypedDict
 
 from app.clients.jquants import (
@@ -71,28 +71,19 @@ def jquants_cache(mgmtId: str) -> Response:
                     db, management.id, process, "Complete"
                 )
 
-            # 上場銘柄一覧　取得
-            jquantsSearvice = Equities_master_service(JQuantsListedIssueRepository())
-            if management.company_code:
-                company = jquantsSearvice.getByCode(db, management.company_code)
-                masterList = [company] if company is not None else []
-            else:
-                masterList = jquantsSearvice.getAll(db)
-            if not masterList:
-                raise ValueError("会社情報を取得できませんでした。")
-
             # 株価四本値　更新
             if management.status_dailyBar in ["Waiting", "Running", "Error"]:
                 process = "dailyBar"
                 management = mgmtSearvice.setStatus(
                     db, management.id, process, "Running"
                 )
-                for company in masterList:
-                    _daily_quote_cache(
-                        code=company.code,
-                        fromDate=management.from_date,
-                        toDate=management.to_date,
-                    )
+                # 日付ループ
+                target_date = management.from_date
+                while target_date <= management.to_date:
+                    _daily_quote_cache(sDate=target_date)
+                    target_date += timedelta(days=1)
+
+                # ステータス　更新
                 management = mgmtSearvice.setStatus(
                     db, management.id, process, "Complete"
                 )
@@ -103,10 +94,13 @@ def jquants_cache(mgmtId: str) -> Response:
                 management = mgmtSearvice.setStatus(
                     db, management.id, process, "Running"
                 )
-                for company in masterList:
-                    _valuation_cache(
-                        company.code, management.from_date, management.to_date
-                    )
+                # 日付ループ
+                target_date = management.from_date
+                while target_date <= management.to_date:
+                    _valuation_cache(sDate=target_date)
+                    target_date += timedelta(days=1)
+
+                # ステータス　更新
                 management = mgmtSearvice.setStatus(
                     db, management.id, process, "Complete"
                 )
@@ -117,10 +111,13 @@ def jquants_cache(mgmtId: str) -> Response:
                 management = mgmtSearvice.setStatus(
                     db, management.id, process, "Running"
                 )
-                for company in masterList:
-                    _summary_cache(
-                        company.code, management.from_date, management.to_date
-                    )
+                # 日付ループ
+                target_date = management.from_date
+                while target_date <= management.to_date:
+                    _summary_cache(sDate=target_date)
+                    target_date += timedelta(days=1)
+
+                # ステータス　更新
                 management = mgmtSearvice.setStatus(
                     db, management.id, process, "Complete"
                 )
@@ -169,12 +166,17 @@ def _equities_master_cache(code: str | None = "") -> None:
 # --------------------------------------------------
 # 株価四本値
 # --------------------------------------------------
-def _daily_quote_cache(code: str, fromDate: date | None, toDate: date | None) -> None:
+def _daily_quote_cache(
+    code: str | None = None,
+    sDate: date | None = None,
+    fromDate: date | None = None,
+    toDate: date | None = None,
+) -> None:
 
     service = Daily_quote_service(JQuantsDailyQuoteRepository())
     time.sleep(1)
     # APIから取得
-    result = fetch_bars_daily(code, fromDate, toDate)
+    result = fetch_bars_daily(code=code, sDate=sDate, fromDate=fromDate, toDate=toDate)
 
     # DBにキャッシュ
     with SessionLocal.begin() as db:
@@ -204,12 +206,17 @@ def _daily_quote_cache(code: str, fromDate: date | None, toDate: date | None) ->
 # --------------------------------------------------
 # バリュエーション指標
 # --------------------------------------------------
-def _valuation_cache(code: str, fromDate: date | None, toDate: date | None) -> None:
+def _valuation_cache(
+    code: str | None = None,
+    sDate: date | None = None,
+    fromDate: date | None = None,
+    toDate: date | None = None,
+) -> None:
 
     service = Valuation_service(JQuantsValuationRepository())
     time.sleep(1)
     # APIから取得
-    result = fetch_valuation(code, fromDate, toDate)
+    result = fetch_valuation(code=code, sDate=sDate, fromDate=fromDate, toDate=toDate)
 
     # DBにキャッシュ
     with SessionLocal.begin() as db:
@@ -233,12 +240,17 @@ def _valuation_cache(code: str, fromDate: date | None, toDate: date | None) -> N
 # --------------------------------------------------
 # 財務情報
 # --------------------------------------------------
-def _summary_cache(code: str, fromDate: date | None, toDate: date | None) -> None:
+def _summary_cache(
+    code: str | None = None,
+    sDate: date | None = None,
+    fromDate: date | None = None,
+    toDate: date | None = None,
+) -> None:
 
     service = Financial_summary_service(JQuantsFinancialSummaryRepository())
     time.sleep(1)
     # APIから取得
-    result = fetch_summary(code, fromDate, toDate)
+    result = fetch_summary(code=code, sDate=sDate, fromDate=fromDate, toDate=toDate)
 
     # DBにキャッシュ
     with SessionLocal.begin() as db:

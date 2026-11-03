@@ -12,7 +12,7 @@ router = APIRouter(prefix="/batches", tags=["batches"])
 
 
 @router.post(
-    "/jquants/cache/plain",
+    "/jquants/cache/start",
     status_code=status.HTTP_202_ACCEPTED,
 )
 def start_jquants_plain_cache(

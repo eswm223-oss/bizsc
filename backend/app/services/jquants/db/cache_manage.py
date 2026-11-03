@@ -77,7 +77,7 @@ class CacheMgmtService:
 
         return response
 
-    def delete_user(
+    def deleteMgmt(
         self,
         db: Session,
         id: str,
@@ -90,10 +90,11 @@ class CacheMgmtService:
     def getAllSearch(
         self,
         db: Session,
-        search: date | None = None,
+        keyword: str | None = None,
+        targetDate: date | None = None,
         page: int = 1,
         limit: int = 50,
     ) -> tuple[list[CacheMgmt], int]:
-        resList = self.repository.getAllSearch(db, search, page, limit)
-        resTotal = self.repository.count_all(db, search)
+        resList = self.repository.getAllSearch(db, keyword, targetDate, page, limit)
+        resTotal = self.repository.count_all(db, keyword, targetDate)
         return resList, resTotal

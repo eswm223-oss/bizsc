@@ -38,37 +38,36 @@ class JQuantsDailyQuoteRepository:
         search: SearchRequest | None = None,
         sort_by: str = "id",
         sort_order: str = "asc",
-        page: int = 1,
-        limit: int = 50,
+        page: int | None = None,
+        limit: int | None = None,
     ) -> list[JQuantsDailyQuote]:
         statement = select(JQuantsDailyQuote)
 
         # ==========サーチ==========
         if search:
-            statement = (
-                statement.outerjoin(
-                    JQuantsListedIssue,
-                    JQuantsDailyQuote.code == JQuantsListedIssue.code,
+            statement = statement.outerjoin(
+                JQuantsListedIssue,
+                JQuantsDailyQuote.code == JQuantsListedIssue.code,
+            )
+            if search.fromDate and search.toDate:
+                statement = statement.where(
+                    JQuantsDailyQuote.date.between(search.fromDate, search.toDate)
                 )
-                .where(JQuantsDailyQuote.date.between(search.dateFrom, search.dateTo))
-                .where(
+            if search.keyword:
+                statement = statement.where(
                     or_(
                         JQuantsDailyQuote.code.like(f"%{search.keyword}%"),
                         JQuantsListedIssue.company_name.like(f"%{search.keyword}%"),
                         JQuantsListedIssue.company_name_en.like(f"%{search.keyword}%"),
                     )
                 )
-            )
+            if search.targetDate:
+                statement = statement.where(JQuantsDailyQuote.date == search.targetDate)
 
         # ==========ページング==========
-        offset = (page - 1) * limit
-        statement = (
-            statement.order_by(
-                JQuantsDailyQuote.code.asc(), JQuantsDailyQuote.date.desc()
-            )
-            .offset(offset)
-            .limit(limit)
-        )
+        if page and limit:
+            offset = (page - 1) * limit
+            statement = statement.offset(offset).limit(limit)
 
         # ==========ソート==========
         sort_columns = {
@@ -106,22 +105,26 @@ class JQuantsDailyQuoteRepository:
         db: Session,
         search: SearchRequest | None = None,
     ) -> int:
-        statement = select(func.count(JQuantsListedIssue.id))
+        statement = select(func.count(JQuantsDailyQuote.id))
 
         if search:
-            statement = (
-                statement.outerjoin(
-                    JQuantsListedIssue,
-                    JQuantsDailyQuote.code == JQuantsListedIssue.code,
+            statement = statement.outerjoin(
+                JQuantsListedIssue,
+                JQuantsDailyQuote.code == JQuantsListedIssue.code,
+            )
+            if search.fromDate and search.toDate:
+                statement = statement.where(
+                    JQuantsDailyQuote.date.between(search.fromDate, search.toDate)
                 )
-                .where(JQuantsDailyQuote.date.between(search.dateFrom, search.dateTo))
-                .where(
+            if search.keyword:
+                statement = statement.where(
                     or_(
                         JQuantsDailyQuote.code.like(f"%{search.keyword}%"),
                         JQuantsListedIssue.company_name.like(f"%{search.keyword}%"),
                         JQuantsListedIssue.company_name_en.like(f"%{search.keyword}%"),
                     )
                 )
-            )
+            if search.targetDate:
+                statement = statement.where(JQuantsDailyQuote.date == search.targetDate)
 
         return db.scalar(statement) or 0

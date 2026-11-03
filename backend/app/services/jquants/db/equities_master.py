@@ -1,5 +1,6 @@
 from app.models import JQuantsListedIssue
 from app.repositories.equities_master import JQuantsListedIssueRepository
+from app.schemas.jqunats import SearchRequest
 from sqlalchemy.orm import Session
 
 
@@ -25,7 +26,7 @@ class Equities_master_service:
     def search(
         self,
         db: Session,
-        search: str | None = None,
+        search: SearchRequest | None = None,
         sort_by: str = "id",
         sort_order: str = "asc",
         page: int = 1,

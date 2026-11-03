@@ -91,7 +91,7 @@ def _require_api_key() -> str:
 EQUITIES_MASTER_URL = f"{JQUANTS_BASE_URL}/equities/master"
 
 
-def fetch_listed_issues(date: date | None, code: str | None = "") -> Any:
+def fetch_listed_issues(sDate: date | None, code: str | None = "") -> Any:
     api_key = _require_api_key()
 
     headers = {
@@ -101,8 +101,8 @@ def fetch_listed_issues(date: date | None, code: str | None = "") -> Any:
     params = {}
     if code:
         params["code"] = code
-    if date is not None:
-        params["date"] = dateToStr(date)
+    if sDate is not None:
+        params["date"] = dateToStr(sDate)
 
     try:
         response = httpx.get(
@@ -127,7 +127,9 @@ def fetch_listed_issues(date: date | None, code: str | None = "") -> Any:
 EQUITIES_DAILY_URL = f"{JQUANTS_BASE_URL}/equities/bars/daily"
 
 
-def fetch_bars_daily(code: str, fromDate: date | None, toDate: date | None) -> Any:
+def fetch_bars_daily(
+    code: str | None, sDate: date | None, fromDate: date | None, toDate: date | None
+) -> Any:
     api_key = _require_api_key()
 
     headers = {
@@ -137,7 +139,12 @@ def fetch_bars_daily(code: str, fromDate: date | None, toDate: date | None) -> A
     try:
         response = httpx.get(
             EQUITIES_DAILY_URL,
-            params={"code": code, "from": dateToStr(fromDate), "to": dateToStr(toDate)},
+            params={
+                "code": code,
+                "date": dateToStr(sDate),
+                "from": dateToStr(fromDate),
+                "to": dateToStr(toDate),
+            },
             headers=headers,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
@@ -159,7 +166,9 @@ def fetch_bars_daily(code: str, fromDate: date | None, toDate: date | None) -> A
 EQUITIES_VALUATION_URL = f"{JQUANTS_BASE_URL}/equities/valuation"
 
 
-def fetch_valuation(code: str, fromDate: date | None, toDate: date | None) -> Any:
+def fetch_valuation(
+    code: str | None, sDate: date | None, fromDate: date | None, toDate: date | None
+) -> Any:
     api_key = _require_api_key()
 
     headers = {
@@ -169,7 +178,12 @@ def fetch_valuation(code: str, fromDate: date | None, toDate: date | None) -> An
     try:
         response = httpx.get(
             EQUITIES_VALUATION_URL,
-            params={"code": code, "from": dateToStr(fromDate), "to": dateToStr(toDate)},
+            params={
+                "code": code,
+                "date": dateToStr(sDate),
+                "from": dateToStr(fromDate),
+                "to": dateToStr(toDate),
+            },
             headers=headers,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
@@ -189,7 +203,9 @@ def fetch_valuation(code: str, fromDate: date | None, toDate: date | None) -> An
 EQUITIES_SUMMARY_URL = f"{JQUANTS_BASE_URL}/fins/summary"
 
 
-def fetch_summary(code: str, fromDate: date | None, toDate: date | None) -> Any:
+def fetch_summary(
+    code: str | None, sDate: date | None, fromDate: date | None, toDate: date | None
+) -> Any:
     api_key = _require_api_key()
 
     headers = {
@@ -199,7 +215,12 @@ def fetch_summary(code: str, fromDate: date | None, toDate: date | None) -> Any:
     try:
         response = httpx.get(
             EQUITIES_SUMMARY_URL,
-            params={"code": code, "from": dateToStr(fromDate), "to": dateToStr(toDate)},
+            params={
+                "code": code,
+                "date": dateToStr(sDate),
+                "from": dateToStr(fromDate),
+                "to": dateToStr(toDate),
+            },
             headers=headers,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )

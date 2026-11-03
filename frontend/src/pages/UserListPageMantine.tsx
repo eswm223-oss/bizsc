@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Alert,
@@ -18,6 +18,7 @@ import {
 
 import { getUsers } from "../api/users";
 import type { User } from "../types/user";
+import { useQuery } from "@tanstack/react-query";
 
 const SORT_OPTIONS = [
   { value: "id", label: "ID" },
@@ -38,17 +39,26 @@ const ORDER_OPTIONS = [
 ];
 
 function UserListPageMantine() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [sortBy, setSortBy] = useState("id");
   const [sortOrder, setSortOrder] = useState("asc");
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
-  const [total, setTotal] = useState(0);
-  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const [limit] = useState(50);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: [
+      "users",
+      appliedSearch,
+      activeFilter,
+      sortBy,
+      sortOrder,
+      page,
+      limit,
+    ],
+    queryFn: () => fetchUsers(search, activeFilter, sortBy, sortOrder, page),
+  });
 
   const fetchUsers = useCallback(
     async (
@@ -58,50 +68,33 @@ function UserListPageMantine() {
       sortOrderValue: string,
       pageValue: number,
     ) => {
-      try {
-        setIsLoading(true);
-        setError(null);
+      const isActive =
+        activeFilterValue === "all" ? undefined : activeFilterValue === "true";
 
-        const isActive =
-          activeFilterValue === "all"
-            ? undefined
-            : activeFilterValue === "true";
-
-        const response = await getUsers(
-          searchValue || undefined,
-          isActive,
-          sortByValue,
-          sortOrderValue,
-          pageValue,
-          limit,
-        );
-
-        setUsers(response.users);
-        setTotal(response.total);
-      } catch {
-        setError("ユーザー一覧の取得に失敗しました");
-      } finally {
-        setIsLoading(false);
-      }
+      const response = await getUsers(
+        searchValue || undefined,
+        isActive,
+        sortByValue,
+        sortOrderValue,
+        pageValue,
+        limit,
+      );
+      return response;
     },
     [limit],
   );
-
-  useEffect(() => {
-    void fetchUsers(search, activeFilter, sortBy, sortOrder, page);
-    // 初回読み込みのみ。検索・ページ変更は明示的に呼び出す。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const users: User[] = data?.users ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   function handleSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPage(1);
-    void fetchUsers(search, activeFilter, sortBy, sortOrder, 1);
+    setAppliedSearch(search);
   }
 
   function handlePageChange(nextPage: number) {
     setPage(nextPage);
-    void fetchUsers(search, activeFilter, sortBy, sortOrder, nextPage);
   }
 
   return (
@@ -159,7 +152,7 @@ function UserListPageMantine() {
 
       {error && (
         <Alert color="red" title="エラー">
-          {error}
+          {error.message}
         </Alert>
       )}
 

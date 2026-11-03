@@ -8,14 +8,17 @@ from pydantic import (
 
 
 class SearchRequest(BaseModel):
-    keyword: str | None
-    dateFrom: date | None
-    dateTo: date | None
+    code: str | None = None
+    keyword: str | None = None
+    fromDate: date | None = None
+    toDate: date | None = None
+    targetDate: date | None = None
 
 
 class MasterResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: str
     date: date
     code: str
     company_name: str
@@ -42,6 +45,7 @@ class MasterListResponse(BaseModel):
 class DailyQuoteResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: str
     date: date
     code: str
     open: Decimal | None
@@ -71,6 +75,7 @@ class DailyQuoteListResponse(BaseModel):
 class ValuationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: str
     date: date
     code: str
     eps: Decimal | None
@@ -94,6 +99,7 @@ class ValuationListResponse(BaseModel):
 class SummaryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: str
     disclosure_date: date
     disclosure_time: str | None
     code: str

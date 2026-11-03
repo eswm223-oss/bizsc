@@ -5,20 +5,37 @@ export type CacheBatchRequest = {
   code: string;
 };
 
-export type CacheMgmt = {
-  id: string;
-  from_Date: Date;
-  to_Date: Date;
-  company_code: string | undefined;
-  status_master: string | undefined;
-  status_dailyBar: string | undefined;
-  status_valuation: string | undefined;
-  status_summary: string | undefined;
-  remarks: string | undefined;
-  upDated_at: Date;
+export type SearchRequest = {
+  keyword: string | undefined;
+  date: string | null;
 };
 
-export type CacheMgmtListringesponse = {
-  data: CacheMgmt[];
+export type CacheMgmtRecord = {
+  id: string;
+  from_date: Date;
+  to_date: Date;
+  company_code: string | undefined;
+  status_master: "Complete" | "Waiting" | "Running" | "Error" | undefined;
+  status_dailyBar: "Complete" | "Waiting" | "Running" | "Error" | undefined;
+  status_valuation: "Complete" | "Waiting" | "Running" | "Error" | undefined;
+  status_summary: "Complete" | "Waiting" | "Running" | "Error" | undefined;
+  remarks: string | undefined;
+  updated_at: Date;
+};
+
+export type CacheMgmtListResponse = {
+  data: CacheMgmtRecord[];
   total: number;
+};
+
+export type CacheRunRequest = {
+  fromDate: Date | undefined;
+  toDate: Date | undefined;
+  mgmtId: string | undefined;
+  code: string | undefined;
+};
+
+export type CacheRunResponse = {
+  message: string | undefined;
+  mgmtId: string | undefined;
 };

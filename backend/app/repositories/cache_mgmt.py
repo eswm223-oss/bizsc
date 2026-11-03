@@ -11,9 +11,7 @@ class CacheMgmtRepository:
         db: Session,
         id: str,
     ) -> CacheMgmt | None:
-        statement = (
-            select(CacheMgmt).where(CacheMgmt.id == id).order_by(CacheMgmt.id.desc())
-        )
+        statement = select(CacheMgmt).where(CacheMgmt.id == id)
         return db.scalar(statement)
 
     def create(self, db: Session, data: CacheMgmt) -> CacheMgmt:
@@ -44,17 +42,20 @@ class CacheMgmtRepository:
     def getAllSearch(
         self,
         db: Session,
-        search: date | None = None,
+        keyword: str | None = None,
+        targetDate: date | None = None,
         page: int = 1,
         limit: int = 50,
     ) -> list[CacheMgmt]:
         statement = select(CacheMgmt)
 
         # ==========サーチ==========
-        if search:
-            statement = statement.where(CacheMgmt.from_date <= search).where(
-                CacheMgmt.to_date >= search
+        if targetDate:
+            statement = statement.where(CacheMgmt.from_date <= targetDate).where(
+                CacheMgmt.to_date >= targetDate
             )
+        if keyword:
+            statement = statement.where(CacheMgmt.id.like(f"%{keyword}%"))
 
         # ==========ページング==========
         offset = (page - 1) * limit
@@ -65,13 +66,17 @@ class CacheMgmtRepository:
     def count_all(
         self,
         db: Session,
-        search: date | None = None,
+        keyword: str | None = None,
+        targetDate: date | None = None,
     ) -> int:
         statement = select(func.count(CacheMgmt.id))
 
-        if search:
-            statement = statement.where(CacheMgmt.from_date <= search).where(
-                CacheMgmt.to_date >= search
+        # ==========サーチ==========
+        if targetDate:
+            statement = statement.where(CacheMgmt.from_date <= targetDate).where(
+                CacheMgmt.to_date >= targetDate
             )
+        if keyword:
+            statement = statement.where(CacheMgmt.id.like(f"%{keyword}%"))
 
         return db.scalar(statement) or 0

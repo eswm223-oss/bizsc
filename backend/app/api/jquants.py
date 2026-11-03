@@ -42,13 +42,15 @@ router = APIRouter(
     response_model=MasterListResponse,
 )
 def get_masters(
-    search: str | None = None,
+    keyword: str | None = None,
+    date: date | None = None,
     sort_by: str = "id",
     sort_order: str = "asc",
     page: int = 1,
     limit: int = 10,
     db: Session = Depends(get_db),
 ) -> MasterListResponse:
+    search = SearchRequest(keyword=keyword, targetDate=date)
     data, total = master_service.search(
         db,
         search=search,
@@ -70,15 +72,14 @@ def get_masters(
 )
 def get_valuation(
     keyword: str | None = None,
-    fromDate: date | None = None,
-    todate: date | None = None,
+    date: date | None = None,
     sort_by: str = "id",
     sort_order: str = "asc",
     page: int = 1,
     limit: int = 10,
     db: Session = Depends(get_db),
 ) -> ValuationListResponse:
-    search = SearchRequest(keyword=keyword, dateFrom=fromDate, dateTo=todate)
+    search = SearchRequest(keyword=keyword, targetDate=date)
     data, total = valuation_service.search(
         db,
         search=search,
@@ -100,15 +101,14 @@ def get_valuation(
 )
 def get_daily_quote(
     keyword: str | None = None,
-    fromDate: date | None = None,
-    todate: date | None = None,
+    date: date | None = None,
     sort_by: str = "id",
     sort_order: str = "asc",
     page: int = 1,
     limit: int = 10,
     db: Session = Depends(get_db),
 ) -> DailyQuoteListResponse:
-    search = SearchRequest(keyword=keyword, dateFrom=fromDate, dateTo=todate)
+    search = SearchRequest(keyword=keyword, targetDate=date)
     data, total = daily_quote_service.search(
         db,
         search=search,
@@ -130,15 +130,14 @@ def get_daily_quote(
 )
 def get_summary_quote(
     keyword: str | None = None,
-    fromDate: date | None = None,
-    todate: date | None = None,
+    date: date | None = None,
     sort_by: str = "id",
     sort_order: str = "asc",
     page: int = 1,
     limit: int = 10,
     db: Session = Depends(get_db),
 ) -> SummaryListResponse:
-    search = SearchRequest(keyword=keyword, dateFrom=fromDate, dateTo=todate)
+    search = SearchRequest(keyword=keyword, targetDate=date)
     data, total = summary_service.search(
         db,
         search=search,
