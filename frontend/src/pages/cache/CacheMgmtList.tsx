@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { getCacheMgmt } from "../../api/cache";
-import type { CacheMgmtRecord, SearchRequest } from "../../types/cahceMgmt";
+import type { CacheMgmtRecord, SearchRequest } from "../../types/cacheMgmt";
 import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
@@ -90,7 +90,7 @@ const CacheMgmtList = () => {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["master", searchAppliedRequest, sortBy, sortBy, page],
+    queryKey: ["mgmtList", searchAppliedRequest, sortBy, sortBy, page],
     queryFn: () => fetchData(),
   });
 
@@ -111,8 +111,8 @@ const CacheMgmtList = () => {
   const data: CacheMgmtRecord[] = response?.data ?? [];
   const total = response?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
+
   // リストデータ
-  console.log(data[0]);
   const rows = data.map((row) => (
     <Table.Tr key={row.id}>
       <Table.Td>
@@ -126,7 +126,7 @@ const CacheMgmtList = () => {
         </Text>
       </Table.Td>
       <Table.Td>{row.from_date?.toLocaleString("ja-JP")}</Table.Td>
-      <Table.Td>{row.from_date?.toLocaleString("ja-JP")}</Table.Td>
+      <Table.Td>{row.to_date?.toLocaleString("ja-JP")}</Table.Td>
       <Table.Td>{row.company_code}</Table.Td>
       <Table.Td>
         <Badge color={getBadgeColor(row.status_master)}>
@@ -187,8 +187,8 @@ const CacheMgmtList = () => {
           <Grid>
             <Grid.Col span={{ base: 12, md: 5, lg: 3 }} align="flex-end">
               <TextInput
-                label="銘柄キーワード"
-                placeholder="銘柄キーワードで検索"
+                label="IDキーワード"
+                placeholder="IDキーワードで検索"
                 value={searchRequest.keyword}
                 onChange={(event) => {
                   const value = event.currentTarget.value;

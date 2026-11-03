@@ -80,7 +80,7 @@ def jquants_cache(mgmtId: str) -> Response:
                 # 日付ループ
                 target_date = management.from_date
                 while target_date <= management.to_date:
-                    _daily_quote_cache(sDate=target_date)
+                    _daily_quote_cache(code=management.company_code, sDate=target_date)
                     target_date += timedelta(days=1)
 
                 # ステータス　更新
@@ -97,7 +97,7 @@ def jquants_cache(mgmtId: str) -> Response:
                 # 日付ループ
                 target_date = management.from_date
                 while target_date <= management.to_date:
-                    _valuation_cache(sDate=target_date)
+                    _valuation_cache(code=management.company_code, sDate=target_date)
                     target_date += timedelta(days=1)
 
                 # ステータス　更新
@@ -114,7 +114,7 @@ def jquants_cache(mgmtId: str) -> Response:
                 # 日付ループ
                 target_date = management.from_date
                 while target_date <= management.to_date:
-                    _summary_cache(sDate=target_date)
+                    _summary_cache(code=management.company_code, sDate=target_date)
                     target_date += timedelta(days=1)
 
                 # ステータス　更新

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, Stack, Title } from "@mantine/core";
 import MgmtForm from "../../components/Form/MgmtForm";
 import { runCacheBatch } from "../../api/cache";
-import type { CacheRunRequest } from "../../types/cahceMgmt";
+import type { CacheRunRequest } from "../../types/cacheMgmt";
 import { notifications } from "@mantine/notifications";
 
 function CacheBatch() {
@@ -20,8 +20,8 @@ function CacheBatch() {
     if (!fromDate || !toDate || fromDate > toDate) return;
 
     const request: CacheRunRequest = {
-      fromDate: new Date(fromDate),
-      toDate: new Date(toDate),
+      fromDate: fromDate,
+      toDate: toDate,
       code: companyCode,
       mgmtId: undefined,
     };

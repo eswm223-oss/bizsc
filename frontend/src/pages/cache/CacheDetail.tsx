@@ -1,4 +1,4 @@
-import { useState, type SubmitEvent } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Alert,
@@ -14,7 +14,7 @@ import {
   Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import type { CacheMgmtRecord, CacheRunRequest } from "../../types/cahceMgmt";
+import type { CacheMgmtRecord, CacheRunRequest } from "../../types/cacheMgmt";
 import {
   deleteCacheMgmt,
   getCacheMgmtById,
@@ -101,10 +101,9 @@ function CacheDetail() {
 
   //キャッシュバッチ実行処理
   async function handleSubmit() {
-    debugger;
     const request: CacheRunRequest = {
-      fromDate: data.from_date,
-      toDate: data.to_date,
+      fromDate: data.from_date.toString(),
+      toDate: data.to_date.toString(),
       code: data.company_code,
       mgmtId: data.id,
     };
@@ -208,12 +207,6 @@ function CacheDetail() {
           </div>
           <div>
             <Text size="sm" c="dimmed">
-              企業コード
-            </Text>
-            <Text>{data.company_code}</Text>
-          </div>
-          <div>
-            <Text size="sm" c="dimmed">
               備考
             </Text>
             <Text>{data.remarks}</Text>
@@ -232,7 +225,20 @@ function CacheDetail() {
           一覧へ戻る
         </Button>
         <Group>
-          <Button variant="light" onClick={() => handleSubmit()}>
+          <Button
+            variant="light"
+            onClick={() => handleSubmit()}
+            disabled={
+              data.status_master == "Running" ||
+              data.status_dailyBar == "Running" ||
+              data.status_valuation == "Running" ||
+              data.status_summary == "Running" ||
+              (data.status_master == "Complete" &&
+                data.status_dailyBar == "Complete" &&
+                data.status_valuation == "Complete" &&
+                data.status_summary == "Complete")
+            }
+          >
             キャッシュ開始
           </Button>
           <Button color="red" onClick={() => setDeleteOpened(true)}>

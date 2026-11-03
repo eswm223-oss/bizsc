@@ -4,7 +4,7 @@ from app.db.database import get_db
 from app.repositories import CacheMgmtRepository
 from app.schemas import CacheMgmtListResponse, CacheMgmtResponse
 from app.services import CacheMgmtService
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 router = APIRouter(
@@ -53,6 +53,12 @@ def get_by_id(
     if not mgmt_id:
         return
     response = service.getById(db, mgmt_id)
+    if response is None:
+        raise HTTPException(
+            status_code=404,
+            detail="管理データが見つかりません",
+        )
+
     return CacheMgmtResponse.model_validate(response)
 
 

@@ -68,7 +68,7 @@ const DailyQuoteList = () => {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["master", searchAppliedRequest, sortBy, sortBy, page],
+    queryKey: ["dailyQuoteList", searchAppliedRequest, sortBy, sortBy, page],
     queryFn: () => fetchData(),
   });
 

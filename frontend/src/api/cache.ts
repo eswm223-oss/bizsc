@@ -3,7 +3,7 @@ import type {
   CacheRunRequest,
   CacheMgmtListResponse,
   CacheMgmtRecord,
-} from "../types/cahceMgmt";
+} from "../types/cacheMgmt";
 import apiClient from "./client";
 
 //***************************** */

@@ -29,8 +29,8 @@ export type CacheMgmtListResponse = {
 };
 
 export type CacheRunRequest = {
-  fromDate: Date | undefined;
-  toDate: Date | undefined;
+  fromDate: string | undefined;
+  toDate: string | undefined;
   mgmtId: string | undefined;
   code: string | undefined;
 };
