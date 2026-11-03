@@ -1,7 +1,7 @@
 # BizSC Project Overview
 
-更新日: 2026-10-25  
-確認したGitHubコミット: [`jquants_chche_process_fix_4`](https://github.com/eswm223-oss/bizsc/commit/1a4f7a9d6804daf8d56340f1c1c5a8d0eb1747ca)
+更新日: 2026-10-27  
+確認したGitHubソースのコミット（本更新前）: [`6b577b8`](https://github.com/eswm223-oss/bizsc/commit/6b577b832beb6f661a97a87fd697fa3b9dbaf8ae)
 
 ## 1. プロジェクトの目的
 
@@ -52,7 +52,7 @@ EDINET API連携、現在上場企業判定、書類棚卸し、PostgreSQLへの
 - 開発環境: Windows、Cursor、GitHub Desktop、Docker Desktop、TablePlus
 - Backend: Python 3.12 / FastAPI / SQLAlchemy / Pydantic / httpx / Alembic
 - DB: PostgreSQL 17
-- Frontend: React / TypeScript / Vite / React Router / Axios / Bootstrap
+- Frontend: React / TypeScript / Vite / React Router / Axios / Mantine 9 / TanStack Table v9
 - Docker Compose: frontend（5173）、backend（8000）、db（5432）
 - Repository: <https://github.com/eswm223-oss/bizsc>
 - Workspace: `D:\Development\apps\bizsc`
@@ -64,6 +64,15 @@ Frontend → FastAPI Router → Service → Repository → PostgreSQL
                                   ↑
                      Batch / Cache Service → J-Quants Client → J-Quants API
 ```
+
+### Frontend UIの現在地（2026-10-27）
+
+- BootstrapからMantine 9へ移行。Bootstrapのnpm依存関係は削除済み。
+- ホーム画面、ユーザー一覧・詳細・新規登録・編集画面はMantineコンポーネントで新規作成し、既存URLから新画面を参照している。
+- Mantine `AppShell` によるヘッダー・ナビゲーションとライト／ダークモード切替を実装。
+- ユーザー管理機能は画面・API連携を確認するためのサンプルであり、BizSCの主機能は今後の株式スクリーニング。
+- `/jquants/master` および `/test` は従来のレイアウトを使用し、TanStack Table v9も継続利用している。
+- 利用者がフロントエンドのビルド成功と画面の正常動作を確認。JSチャンクサイズの警告は発生するがビルドは成功。
 
 ## 4. J-Quantsキャッシュ機能の現在地
 
@@ -92,7 +101,8 @@ APIの202応答は受付完了であってバッチ完了ではない。バッ�
 | 領域 | 状態 | 補足 |
 |---|---|---|
 | Docker / FastAPI / DB / Reactの基盤 | 完了 | 基本起動環境 |
-| User CRUD / React画面 | 完了 | 一覧・検索・フィルタ・ソート・ページングを含む |
+| User CRUD / React画面 | 完了 | サンプルのホーム・ユーザー画面をMantine化。一覧・検索・フィルタ・ソート・ページングを含む |
+| Frontend UI基盤のMantine移行 | 完了（一部旧レイアウト残存） | Bootstrap依存を削除。J-Quants・テスト画面は既存レイアウトを維持 |
 | EDINET書類棚卸し | Legacyとして実装済み | 主データソースからは移行 |
 | J-Quants API Client | 実装済み | 4 Dataset |
 | J-Quantsデータ保存Model・Repository・Service | 実装済み | 銘柄・株価・Valuation・財務 |
@@ -139,7 +149,7 @@ APIに含まれる指標とBizSC側で計算する派生値を分けて設計す
 1. **保存データの小範囲確認**: 1銘柄・短期間の登録、管理ステータス、欠損値、検索結果を確認。
 2. **Screening指標の仕様確定**: 指標・期間・比較基準・計算式、対象データが不足する場合の扱いを決める。
 3. **Screening Backend**: 複数テーブルの連結、条件検索、ソート、ページングを実装。
-4. **Screening Frontend**: 条件入力、結果一覧、銘柄詳細、チャートなどを小さく段階追加。
+4. **Screening Frontend**: Mantineを標準UIとして、条件入力、結果一覧、銘柄詳細、チャートなどを小さく段階追加。TanStack Table v9は必要に応じて利用。
 5. **運用改善**: 必要に応じて進捗参照API、定期取得、ジョブ排他・中断処理などを追加。
 
 ### 意図的に保留する項目
@@ -168,4 +178,4 @@ docs/project-overview.md    # プロジェクトの目的とロードマップ
 
 ---
 
-**現在地（2026-10-25）**: J-Quantsデータのキャッシュ処理を実装。次の主題は、キャッシュ済み株価・財務データを活用するスクリーニング機能の設計・実装。
+**現在地（2026-10-27）**: J-Quantsデータのキャッシュ処理とホーム・ユーザー管理サンプル画面のMantine移行を実装。次の主題は、キャッシュ済み株価・財務データを活用するスクリーニング機能の設計・実装。

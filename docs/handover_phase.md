@@ -1,13 +1,13 @@
 # BizSC Handover Phase
 
-更新日: 2026-10-25  
-確認したGitHubコミット: [`jquants_chche_process_fix_4`](https://github.com/eswm223-oss/bizsc/commit/1a4f7a9d6804daf8d56340f1c1c5a8d0eb1747ca)
+更新日: 2026-10-27  
+確認したGitHubソースのコミット（本更新前）: [`6b577b8`](https://github.com/eswm223-oss/bizsc/commit/6b577b832beb6f661a97a87fd697fa3b9dbaf8ae)
 
 ## 1. この資料の目的／次のチャットへの引継ぎ
 
-BizSCは、日本株向けの株式スクリーニングアプリ。**J-Quantsのキャッシュ処理について、コード実装とレビュー・修正を一区切り完了**した。次は保存データを利用するスクリーニング処理の設計や、必要な実データ確認・Frontend連携へ進められる状態にある。
+BizSCは、日本株向けの株式スクリーニングアプリ。**J-Quantsキャッシュ処理のコード実装・レビュー修正、およびホーム・ユーザー画面のMantineへの移行を一区切り完了**した。次は保存データを利用するスクリーニング処理の設計や、必要な実データ確認・Frontend連携へ進められる状態にある。
 
-重要: 「コード実装の完了」と「全条件での長期間バッチ稼働検証済み」は区別する。最終コミットを基準に記述しており、この資料作成に際してDBや実APIの結合実行は行っていない。
+重要: 「コード実装の完了」と「全条件での長期間バッチ稼働検証済み」は区別する。GitHubの確認済みソースを基準に記述しており、この資料更新に際してDBや実APIの結合実行は行っていない。UIについては利用者からビルド成功・正常動作の報告があった。
 
 GitHub: <https://github.com/eswm223-oss/bizsc>  
 Workspace: `D:\Development\apps\bizsc`
@@ -16,7 +16,7 @@ Workspace: `D:\Development\apps\bizsc`
 
 - Docker Compose: backend/FastAPI（8000）、frontend/React+Vite（5173）、db/PostgreSQL17（5432）。
 - Python 3.12、SQLAlchemy、Alembic、Pydantic、httpx、pytest。
-- User CRUD / 検索・フィルタ・ページングのUI実装済み。
+- User CRUD / 検索・フィルタ・ページングのUI実装済み。ホーム・ユーザー画面はMantine版へ切替済み（サンプル）。
 - EDINETの棚卸し実装・テーブルはLegacyとして保持。新しい主データソースはJ-Quants。
 - WindowsのローカルPostgreSQLとDocker PostgreSQLの5432番競合に注意。
 
@@ -102,12 +102,22 @@ Waiting → Running → Complete
 
 `Waiting`、`Running`、`Error`は次回起動時の処理対象。`Complete`はスキップ。`remarks`にはエラーメッセージを最大300文字保存する。
 
-## 6. 最新コミットまでの変更履歴（概要）
+## 6. 主な変更履歴（概要）
 
 - `jquants_service_2` 系: J-Quants 4種類のModel / Repository / Service / Cacheを整理。`db.merge`、日付範囲・企業名検索を実装。
 - `jquants_cache_process`: `cache_mgmt`、キャッシュ起動API、BackgroundTasks、バッチServiceを導入。
 - `jquants_chche_process_fix` ～ `fix_3`: Router登録、`SessionLocal()`利用、引数順、ステータス表記、銘柄絞り込み、日付条件、リトライとエラー処理を修正。
 - **`jquants_chche_process_fix_4`**: ClientのHTTPエラー時にレスポンス本文の`message`を例外へ反映。Cache内の処理状態変数を整理し、日足株価・Valuation・財務サマリーAPI前に1秒間隔を追加。API側で空の`mgmtId`も新規扱い。
+- **Mantine UI移行（2026-10-27確認）**: `@mantine/core` / `@mantine/hooks` 9.7.4 を採用。Bootstrap npm依存を削除。ホーム・ユーザーCRUD画面と共通レイアウトをMantine版へ切替。J-Quants画面・テスト画面は既存レイアウト側に残す。
+
+### UI移行後の確認事項
+
+- `frontend/src/main.tsx`: MantineのCSS、`MantineProvider defaultColorScheme="auto"`、`BrowserRouter` を設定済み。
+- `frontend/src/routes/AppRoutes.tsx`: `/`、`/users`、`/users/new`、`/users/:userId`、`/users/:userId/edit` をMantine版で提供。`/jquants/master` と `/test` は従来の `MainLayout` のまま。
+- `frontend/src/layouts/MainLayoutMantine.tsx`: `AppShell`、メニュー、ライト／ダーク切替。`frontend/src/components/UserForm/UserFormMantine.tsx`: 共通ユーザーフォーム。
+- ユーザー一覧はMantine `Table`／`Pagination`。TanStack Table v9は `components/test/TanstackTable.tsx` で維持。
+- 旧Bootstrapベースの画面や共通UIソースは一部リポジトリに残存。依存パッケージを削除したことと、旧ソースの削除完了は別事項。
+- 利用者の実行結果: `docker compose exec frontend npm run build` は成功し、ブラウザで正常動作を確認済み。生成JSは約605KBで500KB超の警告あり（エラーではない）。この文書更新では再実行していない。
 
 ## 7. 次の作業候補（再開時の優先順位）
 
@@ -154,6 +164,8 @@ docker compose up -d
 docker compose ps
 docker compose exec backend alembic current
 docker compose exec backend alembic heads
+# Frontend（UI変更時）
+docker compose exec frontend npm run build
 # マイグレーション内容を確認してから実行
 docker compose exec backend alembic upgrade head
 # 必要な場合のみ
@@ -169,3 +181,4 @@ docker compose exec backend pytest -v
 3. EDINET解析の続きではなく、J-Quantsキャッシュ後のスクリーニング設計を主軸とする。
 4. 実装済みと動作検証済みを混同しない。根拠のない成功宣言は避ける。
 5. 開発は小さいStep単位で進め、不要なLibrary・別サービスを追加しない。
+6. 新しいUIはMantine標準コンポーネントを優先。J-Quants画面の旧レイアウトとMantine版の適用範囲を区別する。
