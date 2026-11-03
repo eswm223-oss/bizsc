@@ -14,7 +14,11 @@ import {
   Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import type { CacheMgmtRecord, CacheRunRequest } from "../../types/cacheMgmt";
+import type {
+  CacheMgmtRecord,
+  CacheRunRequest,
+  CacheStatus,
+} from "../../types/cacheMgmt";
 import {
   deleteCacheMgmt,
   getCacheMgmtById,
@@ -34,9 +38,7 @@ function CacheDetail() {
   }
 
   // ステータス
-  function getBadgeColor(
-    status: "Complete" | "Waiting" | "Running" | "Error" | undefined,
-  ) {
+  function getBadgeColor(status: CacheStatus | null) {
     switch (status) {
       case "Complete":
         return "lime.6";
@@ -104,7 +106,7 @@ function CacheDetail() {
     const request: CacheRunRequest = {
       fromDate: data.from_date.toString(),
       toDate: data.to_date.toString(),
-      code: data.company_code,
+      code: data.company_code || undefined,
       mgmtId: data.id,
     };
 
@@ -137,16 +139,17 @@ function CacheDetail() {
       </Center>
     );
   }
+  // 取得エラー
+  if (error || !response) {
+    return (
+      <Alert color="red" title="取得エラー">
+        {error?.message ?? "データが見つかりません"}
+      </Alert>
+    );
+  }
   return (
     <Stack gap="lg" maw={640}>
       <Title order={2}>キャッシュ処理操作</Title>
-
-      {error && (
-        <Alert color="red" title="エラー">
-          {error.message}
-        </Alert>
-      )}
-
       <Card withBorder padding="lg" radius="md">
         <Stack gap="sm">
           <div>
@@ -159,13 +162,13 @@ function CacheDetail() {
             <Text size="sm" c="dimmed">
               対象日From
             </Text>
-            <Text>{data.from_date?.toLocaleString("ja-JP")}</Text>
+            <Text>{data.from_date}</Text>
           </div>
           <div>
             <Text size="sm" c="dimmed">
               対象日To
             </Text>
-            <Text>{data.to_date?.toLocaleString("ja-JP")}</Text>
+            <Text>{data.to_date}</Text>
           </div>
           <div>
             <Text size="sm" c="dimmed">

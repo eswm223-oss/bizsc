@@ -10,17 +10,19 @@ export type SearchRequest = {
   date: string | null;
 };
 
+export type CacheStatus = "Complete" | "Waiting" | "Running" | "Error";
+
 export type CacheMgmtRecord = {
   id: string;
-  from_date: Date;
-  to_date: Date;
-  company_code: string | undefined;
-  status_master: "Complete" | "Waiting" | "Running" | "Error" | undefined;
-  status_dailyBar: "Complete" | "Waiting" | "Running" | "Error" | undefined;
-  status_valuation: "Complete" | "Waiting" | "Running" | "Error" | undefined;
-  status_summary: "Complete" | "Waiting" | "Running" | "Error" | undefined;
-  remarks: string | undefined;
-  updated_at: Date;
+  from_date: string;
+  to_date: string;
+  company_code: string | null;
+  status_master: CacheStatus | null;
+  status_dailyBar: CacheStatus | null;
+  status_valuation: CacheStatus | null;
+  status_summary: CacheStatus | null;
+  remarks: string | null;
+  updated_at: string;
 };
 
 export type CacheMgmtListResponse = {

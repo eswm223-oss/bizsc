@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { getCacheMgmt } from "../../api/cache";
-import type { CacheMgmtRecord, SearchRequest } from "../../types/cacheMgmt";
+import type {
+  CacheMgmtRecord,
+  CacheStatus,
+  SearchRequest,
+} from "../../types/cacheMgmt";
 import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
@@ -44,9 +48,7 @@ const CacheMgmtList = () => {
   }
 
   // ステータス
-  function getBadgeColor(
-    status: "Complete" | "Waiting" | "Running" | "Error" | undefined,
-  ) {
+  function getBadgeColor(status: CacheStatus | null) {
     switch (status) {
       case "Complete":
         return "lime.6";
@@ -125,8 +127,8 @@ const CacheMgmtList = () => {
           {row.id}
         </Text>
       </Table.Td>
-      <Table.Td>{row.from_date?.toLocaleString("ja-JP")}</Table.Td>
-      <Table.Td>{row.to_date?.toLocaleString("ja-JP")}</Table.Td>
+      <Table.Td>{row.from_date}</Table.Td>
+      <Table.Td>{row.to_date}</Table.Td>
       <Table.Td>{row.company_code}</Table.Td>
       <Table.Td>
         <Badge color={getBadgeColor(row.status_master)}>

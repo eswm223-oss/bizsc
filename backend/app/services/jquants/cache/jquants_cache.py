@@ -57,6 +57,26 @@ def jquants_cache(mgmtId: str) -> Response:
                 "status": "error",
                 "message": "キャッシュ処理の準備に失敗しました。",
             }
+        if "Running" in [
+            management.status_master,
+            management.status_dailyBar,
+            management.status_valuation,
+            management.status_summary,
+        ]:
+            return {
+                "status": "error",
+                "message": "実行中のキャッシュ処理です。",
+            }
+        if (
+            management.status_master == "Complete"
+            and management.status_dailyBar == "Complete"
+            and management.status_valuation == "Complete"
+            and management.status_summary == "Complete"
+        ):
+            return {
+                "status": "error",
+                "message": "完了済みのキャッシュ処理です。",
+            }
 
         # キャッシュ処理　開始
         try:
