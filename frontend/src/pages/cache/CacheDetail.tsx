@@ -70,7 +70,7 @@ function CacheDetail() {
     return result;
   };
   // fetch後アサイン
-  const data: CacheMgmtRecord = response ?? ({} as CacheMgmtRecord);
+  const data: CacheMgmtRecord | undefined = response;
 
   // delete処理
   const handleDelete = async () => {

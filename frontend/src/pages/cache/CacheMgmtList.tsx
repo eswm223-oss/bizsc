@@ -92,7 +92,14 @@ const CacheMgmtList = () => {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["mgmtList", searchAppliedRequest, sortBy, sortBy, page],
+    queryKey: [
+      "mgmtList",
+      searchAppliedRequest,
+      sortBy,
+      sortOrder,
+      page,
+      limit,
+    ],
     queryFn: () => fetchData(),
   });
 

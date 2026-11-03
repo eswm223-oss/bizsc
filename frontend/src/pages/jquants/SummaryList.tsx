@@ -68,7 +68,14 @@ const SummaryList = () => {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["summaryList", searchAppliedRequest, sortBy, sortBy, page],
+    queryKey: [
+      "summaryList",
+      searchAppliedRequest,
+      sortBy,
+      sortOrder,
+      page,
+      limit,
+    ],
     queryFn: () => fetchData(),
   });
 

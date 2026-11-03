@@ -68,7 +68,14 @@ const ValuationList = () => {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["valuationList", searchAppliedRequest, sortBy, sortBy, page],
+    queryKey: [
+      "valuationList",
+      searchAppliedRequest,
+      sortBy,
+      sortOrder,
+      page,
+      limit,
+    ],
     queryFn: () => fetchData(),
   });
 

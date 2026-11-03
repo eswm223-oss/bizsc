@@ -68,7 +68,14 @@ const MasterList = () => {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["masterList", searchAppliedRequest, sortBy, sortBy, page],
+    queryKey: [
+      "masterList",
+      searchAppliedRequest,
+      sortBy,
+      sortOrder,
+      page,
+      limit,
+    ],
     queryFn: () => fetchData(),
   });
 
