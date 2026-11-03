@@ -69,8 +69,6 @@ function CacheDetail() {
     const result = await getCacheMgmtById(mgmtId);
     return result;
   };
-  // fetch後アサイン
-  const data: CacheMgmtRecord | undefined = response;
 
   // delete処理
   const handleDelete = async () => {
@@ -103,11 +101,12 @@ function CacheDetail() {
 
   //キャッシュバッチ実行処理
   async function handleSubmit() {
+    if (!response) return;
     const request: CacheRunRequest = {
-      fromDate: data.from_date.toString(),
-      toDate: data.to_date.toString(),
-      code: data.company_code || undefined,
-      mgmtId: data.id,
+      fromDate: response.from_date,
+      toDate: response.to_date,
+      code: response.company_code || undefined,
+      mgmtId: response.id,
     };
 
     try {
@@ -147,6 +146,9 @@ function CacheDetail() {
       </Alert>
     );
   }
+
+  // fetch後アサイン
+  const data = response;
   return (
     <Stack gap="lg" maw={640}>
       <Title order={2}>キャッシュ処理操作</Title>
