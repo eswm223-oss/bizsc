@@ -27,6 +27,7 @@ from app.services.jquants.db.daily_quote import Daily_quote_service
 from app.services.jquants.db.equities_master import Equities_master_service
 from app.services.jquants.db.financial_summary import Financial_summary_service
 from app.services.jquants.db.valuation import Valuation_service
+from sqlalchemy import inspect
 
 # ==================================
 # JQuantsデータキャッシュ処理
@@ -88,7 +89,7 @@ def jquants_cache(mgmtId: str) -> Response:
                 )
                 _equities_master_cache(management.company_code)
                 management = mgmtSearvice.setStatus(
-                    db, management.id, process, "Complete"
+                    db, management.id, process, "Complete", ""
                 )
 
             # 株価四本値　更新
@@ -105,7 +106,7 @@ def jquants_cache(mgmtId: str) -> Response:
 
                 # ステータス　更新
                 management = mgmtSearvice.setStatus(
-                    db, management.id, process, "Complete"
+                    db, management.id, process, "Complete", ""
                 )
 
             # バリュエーション指標　更新
@@ -122,7 +123,7 @@ def jquants_cache(mgmtId: str) -> Response:
 
                 # ステータス　更新
                 management = mgmtSearvice.setStatus(
-                    db, management.id, process, "Complete"
+                    db, management.id, process, "Complete", ""
                 )
 
             # 財務情報　更新
@@ -139,7 +140,7 @@ def jquants_cache(mgmtId: str) -> Response:
 
                 # ステータス　更新
                 management = mgmtSearvice.setStatus(
-                    db, management.id, process, "Complete"
+                    db, management.id, process, "Complete", ""
                 )
 
         except Exception as e:  # noqa: BLE001
@@ -181,6 +182,7 @@ def _equities_master_cache(code: str | None = "") -> None:
                 product_category=record["ProdCat"],
             )
             service.createOrUpdate(db, data)
+            db.flush()
 
 
 # --------------------------------------------------
@@ -221,6 +223,7 @@ def _daily_quote_cache(
                 ex_rights_type=record["ExRT"],
             )
             service.createOrUpdate(db, data)
+            db.flush()
 
 
 # --------------------------------------------------
@@ -255,6 +258,7 @@ def _valuation_cache(
                 market_cap=record["MktCap"],
             )
             service.createOrUpdate(db, data)
+            db.flush()
 
 
 # --------------------------------------------------
@@ -274,6 +278,11 @@ def _summary_cache(
 
     # DBにキャッシュ
     with SessionLocal.begin() as db:
+        print("autoflush:", db.autoflush)
+        print(
+            "PrimaryKey:",
+            [col.name for col in inspect(JQuantsFinancialSummary).primary_key],
+        )
         for record in result["data"]:
             data = JQuantsFinancialSummary(
                 disclosure_date=TO_DATE(record["DiscDate"]),
@@ -332,3 +341,4 @@ def _summary_cache(
                 next_forecast_eps=TO_DECIMAL(record["NxFEPS"]),
             )
             service.createOrUpdate(db, data)
+            db.flush()
