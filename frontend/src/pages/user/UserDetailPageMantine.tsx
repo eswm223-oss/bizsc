@@ -14,8 +14,8 @@ import {
   Title,
 } from "@mantine/core";
 
-import { deleteUser, getUser } from "../api/users";
-import type { User } from "../types/user";
+import { deleteUser, getUser } from "../../api/users";
+import type { User } from "../../types/user";
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("ja-JP");
@@ -176,7 +176,11 @@ function UserDetailPageMantine() {
           >
             キャンセル
           </Button>
-          <Button color="red" loading={isDeleting} onClick={() => void handleDelete()}>
+          <Button
+            color="red"
+            loading={isDeleting}
+            onClick={() => void handleDelete()}
+          >
             削除する
           </Button>
         </Group>

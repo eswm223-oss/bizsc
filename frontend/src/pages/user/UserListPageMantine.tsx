@@ -16,8 +16,8 @@ import {
   Title,
 } from "@mantine/core";
 
-import { getUsers } from "../api/users";
-import type { User } from "../types/user";
+import { getUsers } from "../../api/users";
+import type { User } from "../../types/user";
 import { useQuery } from "@tanstack/react-query";
 
 const SORT_OPTIONS = [

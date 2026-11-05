@@ -3,9 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Alert, Card, Center, Loader, Stack, Title } from "@mantine/core";
 import { AxiosError } from "axios";
 
-import { getUser, updateUser } from "../api/users";
-import UserFormMantine from "../components/UserForm/UserFormMantine";
-import type { User } from "../types/user";
+import { getUser, updateUser } from "../../api/users";
+import UserFormMantine from "../../components/UserForm/UserFormMantine";
+import type { User } from "../../types/user";
 
 function UserEditPageMantine() {
   const { userId } = useParams();

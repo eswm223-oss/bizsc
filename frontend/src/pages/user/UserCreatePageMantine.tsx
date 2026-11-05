@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Alert, Card, Stack, Title } from "@mantine/core";
 import { isAxiosError } from "axios";
 
-import { createUser } from "../api/users";
-import UserFormMantine from "../components/UserForm/UserFormMantine";
+import { createUser } from "../../api/users";
+import UserFormMantine from "../../components/UserForm/UserFormMantine";
 
 type ApiErrorResponse = {
   detail?: string;
