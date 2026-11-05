@@ -1,13 +1,13 @@
 # BizSC Handover Phase
 
-更新日: 2026-10-27  
-確認したGitHubソースのコミット（本更新前）: [`6b577b8`](https://github.com/eswm223-oss/bizsc/commit/6b577b832beb6f661a97a87fd697fa3b9dbaf8ae)
+更新日: 2026-11-05  
+確認したGitHubソースのコミット（本更新前）: [`e0d43a3`](https://github.com/eswm223-oss/bizsc/commit/e0d43a38f4d1286d1cbac7cdc0d87e11b6e6f3f1)
 
 ## 1. この資料の目的／次のチャットへの引継ぎ
 
-BizSCは、日本株向けの株式スクリーニングアプリ。**J-Quantsキャッシュ処理のコード実装・レビュー修正、およびホーム・ユーザー画面のMantineへの移行を一区切り完了**した。次は保存データを利用するスクリーニング処理の設計や、必要な実データ確認・Frontend連携へ進められる状態にある。
+BizSCは、日本株向けの株式スクリーニングアプリ。**J-Quantsのキャッシュ実行・管理APIおよび管理画面・4種データ一覧を実装し、現行画面のMantine移行を一区切り完了**した。次は保存データを利用するスクリーニング処理の設計や、必要な実データ確認・Frontend連携へ進められる状態にある。
 
-重要: 「コード実装の完了」と「全条件での長期間バッチ稼働検証済み」は区別する。GitHubの確認済みソースを基準に記述しており、この資料更新に際してDBや実APIの結合実行は行っていない。UIについては利用者からビルド成功・正常動作の報告があった。
+重要: 「コード実装の完了」と「全条件での長期間バッチ稼働検証済み」は区別する。GitHubの確認済みソースを基準に記述しており、この資料更新に際してDBや実APIの結合実行は行っていない。利用者から2026-11-04のFrontendビルド成功の報告があった。今回の資料更新では結合実行・ブラウザ操作をしていない。
 
 GitHub: <https://github.com/eswm223-oss/bizsc>  
 Workspace: `D:\Development\apps\bizsc`
@@ -36,71 +36,59 @@ Workspace: `D:\Development\apps\bizsc`
 - J-Quantsの数値・日付変換は共通モジュールを使用。財務項目の空文字列はNULLへ変換。
 - API呼び出し前の`time.sleep(1)`は、日足株価・バリュエーション・財務サマリーに存在。
 
-## 4. キャッシュ起動API
+## 4. キャッシュ起動・管理API
 
-ファイル: `backend/app/api/cache_batch.py`  
-Router登録: `backend/app/main.py`  
-Endpoint: `POST /batches/jquants/cache/plain`  
-応答: HTTP `202 Accepted`
+Backendの起動APIは`backend/app/api/cache_batch.py`の **`POST /batches/jquants/cache/start`**。HTTP 202を返し、FastAPIの`BackgroundTasks`から`run_cache(mgmtId)`を起動する。
 
-新規起動例（Swagger UIまたはREST Client）:
+新規起動JSON例:
 
 ```json
 {
-  "fromDate": "2026-10-01",
-  "toDate": "2026-10-23",
+  "fromDate": "2026-11-01",
+  "toDate": "2026-11-03",
   "code": "13010"
 }
 ```
 
-`mgmtId`は省略可能。省略すると管理レコードを作成して管理IDを返す。`code`を省略または空文字列にすると、マスタに登録されている全銘柄が対象となる。実行時間に大きく影響するため、**初回確認は1銘柄・短期間から**行う。
+- `fromDate`/`toDate`は必須の日付（`YYYY-MM-DD`）、`code`は省略・空文字で全銘柄。
+- `mgmtId`を省略・null・空文字にすると管理IDを新規発行。既存の`mgmtId`指定では保存済みの対象期間・銘柄コードを使用して再実行する。
+- 202受付の応答例: `{"message":"バッチ起動を受け付けました","mgmtId":"20261105-123000"}`（IDは形式例であり実データではない）。
 
-受け付け時のレスポンス例:
+管理API（`backend/app/api/cache_mgmt.py`）:
 
-```json
-{
-  "message": "バッチ起動を受け付けました",
-  "mgmtId": "20261025-195000"
-}
-```
+| HTTP | Endpoint | 内容 |
+|---|---|---|
+| GET | `/cachemgmt/list` | 管理ID部分一致`keyword`、対象日`date`、`page`、`limit` |
+| GET | `/cachemgmt/{mgmt_id}` | 管理詳細。不存在は404 |
+| DELETE | `/cachemgmt/{mgmt_id}` | 管理レコード削除。204。実行中も削除制限なし |
 
-※ 上記IDは書式例。202応答の時点でバッチは完了していない。
+データ参照API: `GET /jquants/master`、`GET /jquants/dailyquote`、`GET /jquants/valuation`、`GET /jquants/summary`（キーワード・日付検索、ページング）。
 
-再実行例:
+## 5. 画面とバッチ実行経路
 
-```json
-{
-  "fromDate": "2026-10-01",
-  "toDate": "2026-10-23",
-  "code": "13010",
-  "mgmtId": "20261025-195000"
-}
-```
+`frontend/src/routes/AppRoutes.tsx`は現行画面すべてを`MainLayoutMantine`配下に接続。
 
-既存`mgmtId`が渡されると、キャッシュ本体は`cache_mgmt`の保存済み条件を参照する。APIボディ中の日付・コードの指定と食い違わないようにすること。
-
-## 5. 実行経路と確認先
+| 画面 | URL | 主な操作 |
+|---|---|---|
+| 管理一覧 | `/jquants/cache` | ID検索、対象日検索、ページング、Dataset別ステータス |
+| 新規キャッシュ | `/jquants/cache/detail` | 日付範囲・銘柄を指定し起動 |
+| 管理詳細 | `/jquants/cache/detail/:mgmtId` | 保存条件・状態・備考を確認、再実行、削除 |
+| データ一覧 | `/jquants/master`、`/jquants/dailyquote`、`/jquants/valuation`、`/jquants/summary` | 検索・ページング |
 
 ```text
-api/cache_batch.py
+CacheBatch / CacheDetail → frontend/src/api/cache.ts
+  → POST /batches/jquants/cache/start
   → BackgroundTasks.add_task(run_cache, mgmtId)
-  → services/batches/jquants_sync.py : run_cache(mgmtId)
-  → services/jquants/cache/jquants_cache.py : jquants_cache(mgmtId)
-  → services/jquants/db/cache_manage.py : CacheMgmtService
-  → repositories/cache_mgmt.py : CacheMgmtRepository
-  → models/cache_mgmt.py : CacheMgmt
+  → services/batches/jquants_sync.py
+  → services/jquants/cache/jquants_cache.py
+  → J-Quants Client / CacheMgmtService / Repository → PostgreSQL
 ```
 
-4つのDataset保存は `jquants_cache.py` の `_equities_master_cache` / `_daily_quote_cache` / `_valuation_cache` / `_summary_cache` が担当。JSONを各Modelに変換し、Service経由でRepositoryへ渡す。
+`cache_mgmt`のDataset別ステータスは`Waiting`、`Running`、`Complete`、`Error`（対象外はNULL）。`remarks`にはエラーを最大300文字保存。完了済みDatasetは再実行時スキップし、未完了部分を処理する。
 
-`cache_mgmt`の主要ステータス:
+バッチ本体は実行開始時に`Running`または4つとも`Complete`を検出すれば拒否する。ただし判定はAPIの202応答後であり、厳密なDB排他制御は未実装（限定的な競合は許容する方針）。管理レコードの実行中削除も許容する。
 
-```text
-Waiting → Running → Complete
-                    └→ Error（API/DB/変換失敗等）
-```
-
-`Waiting`、`Running`、`Error`は次回起動時の処理対象。`Complete`はスキップ。`remarks`にはエラーメッセージを最大300文字保存する。
+FrontendはMantine 9、TanStack Query、Mantine Notificationsを利用。キャッシュ管理一覧・詳細に自動ポーリングは未実装であり、進捗は画面再表示等で確認する。
 
 ## 6. 主な変更履歴（概要）
 
@@ -108,22 +96,20 @@ Waiting → Running → Complete
 - `jquants_cache_process`: `cache_mgmt`、キャッシュ起動API、BackgroundTasks、バッチServiceを導入。
 - `jquants_chche_process_fix` ～ `fix_3`: Router登録、`SessionLocal()`利用、引数順、ステータス表記、銘柄絞り込み、日付条件、リトライとエラー処理を修正。
 - **`jquants_chche_process_fix_4`**: ClientのHTTPエラー時にレスポンス本文の`message`を例外へ反映。Cache内の処理状態変数を整理し、日足株価・Valuation・財務サマリーAPI前に1秒間隔を追加。API側で空の`mgmtId`も新規扱い。
-- **Mantine UI移行（2026-10-27確認）**: `@mantine/core` / `@mantine/hooks` 9.7.4 を採用。Bootstrap npm依存を削除。ホーム・ユーザーCRUD画面と共通レイアウトをMantine版へ切替。J-Quants画面・テスト画面は既存レイアウト側に残す。
+- **Mantine UI移行（2026-11-05確認）**: ホーム・ユーザーCRUDに加えてJ-Quants管理／一覧画面もMantine版へ切替。`jquants_front作成`〜`fix3`で画面連携と型を修正し、`jquants_cache_front`で旧レイアウト・`/test`画面を整理。
 
-### UI移行後の確認事項
+### UI移行後の確認事項（2026-11-05）
 
-- `frontend/src/main.tsx`: MantineのCSS、`MantineProvider defaultColorScheme="auto"`、`BrowserRouter` を設定済み。
-- `frontend/src/routes/AppRoutes.tsx`: `/`、`/users`、`/users/new`、`/users/:userId`、`/users/:userId/edit` をMantine版で提供。`/jquants/master` と `/test` は従来の `MainLayout` のまま。
-- `frontend/src/layouts/MainLayoutMantine.tsx`: `AppShell`、メニュー、ライト／ダーク切替。`frontend/src/components/UserForm/UserFormMantine.tsx`: 共通ユーザーフォーム。
-- ユーザー一覧はMantine `Table`／`Pagination`。TanStack Table v9は `components/test/TanstackTable.tsx` で維持。
-- 旧Bootstrapベースの画面や共通UIソースは一部リポジトリに残存。依存パッケージを削除したことと、旧ソースの削除完了は別事項。
-- 利用者の実行結果: `docker compose exec frontend npm run build` は成功し、ブラウザで正常動作を確認済み。生成JSは約605KBで500KB超の警告あり（エラーではない）。この文書更新では再実行していない。
+- `frontend/src/main.tsx`: Mantine CSS・theme、QueryClientProvider、Notifications、BrowserRouterを設定。
+- `AppRoutes.tsx`: ユーザーCRUDとJ-Quantsの4種データ一覧・キャッシュ管理をMantineレイアウトへ接続。旧`MainLayout.tsx`と`/test`ルートは削除済み。
+- 管理一覧は画面固有のTanStack Query queryKey、Mantine Table/Pagination、検索適用・リセットを使用。
+- 利用者が2026-11-04に`docker compose exec frontend npm run build`の成功を報告。JS 727.69 kB（gzip 220.08 kB）、500 kB超警告のみ。資料更新時にはビルド未実行。
 
 ## 7. 次の作業候補（再開時の優先順位）
 
 ### Step 1: 小範囲の取得・保存結果を確認
 
-推奨: 1銘柄（例: `13010`）、数営業日の範囲。Swagger UIから起動し、返された`mgmtId`で管理状況を確認する。
+推奨: 1銘柄（例: `13010`）、数営業日の範囲。キャッシュ新規画面またはSwagger UIから起動し、管理一覧・詳細画面で状態を確認する。
 
 ```sql
 SELECT id, from_date, to_date, company_code,
@@ -151,10 +137,10 @@ LIMIT 20;
 - **ページネーション自動取得:** Postmanの大きな範囲で全件取得できたとのユーザー確認により、現時点では未実装・保留。
 - **管理IDの同秒重複:** 発生頻度が低いため対策しない判断。これを繰り返し指摘しない。
 - **上場廃止対応:** 現在のListedIssueマスタから不要銘柄を除去する処理は将来検討。
-- **実行停止・排他・中断後の再開:** FastAPI `BackgroundTasks`は同一アプリプロセス内。Docker停止でバッチが中断する可能性があり、自動継続はしない。
+- **実行停止・排他・中断後の再開:** FastAPI `BackgroundTasks`は同一アプリプロセス内。Docker停止で中断する可能性があり、自動継続はしない。厳密な排他は頻度が限定的として現状保留。
 - **長時間の全銘柄取得:** 各Datasetで銘柄単位のAPI呼び出し＋約1秒の間隔がある。全件処理時間・API制限・コンテナ停止時の復旧は別途評価。
-- **状態管理の補助API:** 現在は起動エンドポイントを確認。進捗照会用GET APIは実装済みとみなさない。
-- **入力バリデーション・ID照合:** `fromDate <= toDate`の検証や存在しない管理IDへのHTTP事前エラーは、現時点で独立した対応が必要な候補。
+- **状態管理API:** 管理一覧・詳細GETと削除DELETEは実装済み。自動更新やリアルタイム通知は未実装。
+- **入力バリデーション・ID照合:** 新規起動画面では`fromDate <= toDate`を検証。管理詳細GETは不存在で404。起動API側の追加検証・存在事前確認は今後必要に応じて検討。
 
 ## 9. GitHubとDBの確認コマンド
 
@@ -181,4 +167,4 @@ docker compose exec backend pytest -v
 3. EDINET解析の続きではなく、J-Quantsキャッシュ後のスクリーニング設計を主軸とする。
 4. 実装済みと動作検証済みを混同しない。根拠のない成功宣言は避ける。
 5. 開発は小さいStep単位で進め、不要なLibrary・別サービスを追加しない。
-6. 新しいUIはMantine標準コンポーネントを優先。J-Quants画面の旧レイアウトとMantine版の適用範囲を区別する。
+6. 新しいUIはMantine標準コンポーネントを優先。現在のJ-Quants管理・一覧画面はMantineレイアウトに統合済み。
