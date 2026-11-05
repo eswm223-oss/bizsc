@@ -1,7 +1,7 @@
 # BizSC Architecture
 
-更新日: 2026-10-27  
-確認したGitHubソースのコミット（本更新前）: [`6b577b8`](https://github.com/eswm223-oss/bizsc/commit/6b577b832beb6f661a97a87fd697fa3b9dbaf8ae)
+更新日: 2026-11-05  
+確認したGitHubソースのコミット（本更新前）: [`e0d43a3`](https://github.com/eswm223-oss/bizsc/commit/e0d43a38f4d1286d1cbac7cdc0d87e11b6e6f3f1)
 
 ## 1. 目的と読み方
 
@@ -25,7 +25,7 @@ Browser → React / TypeScript / Vite → Axios → FastAPI
                                           PostgreSQL
 
 【J-Quants バッチ】
-POST /batches/jquants/cache/plain
+POST /batches/jquants/cache/start
   ↓ 202 Accepted + mgmtId
 FastAPI BackgroundTasks（同じアプリケーションプロセス内）
   ↓
@@ -54,17 +54,13 @@ jquants_cache(mgmtId) ← cache_mgmt（対象・期間・実行状態）
 - Compose: `backend` (8000)、`frontend` (5173)、`db` (5432)
 - Windows上の別PostgreSQLサービスが5432番ポートを占有すると、Docker側との競合が発生し得ます。
 
-### 3.1 Frontend UI（2026-10-27 時点）
+### 3.1 Frontend UI（2026-11-05 時点）
 
-- **BootstrapからMantineへ移行。** `frontend/package.json` に `@mantine/core: ^9.7.4` と `@mantine/hooks: ^9.7.4` があり、`bootstrap` 依存は存在しない。
-- `frontend/src/main.tsx` で `@mantine/core/styles.css` を読み込み、`MantineProvider defaultColorScheme="auto"` の内側に `BrowserRouter` と `App` を配置。アプリ全体のテーマ設定はここで行う。
-- `frontend/src/routes/AppRoutes.tsx` では、ホーム `/` とユーザーCRUD `/users...` を `MainLayoutMantine` および `*PageMantine.tsx` に接続。ユーザー入力には `components/UserForm/UserFormMantine.tsx` を使用。
-- `MainLayoutMantine.tsx` は Mantine `AppShell`、Header、Navbar、Footer、レスポンシブナビゲーション、ライト／ダーク切替を実装。
-- `/jquants/master` と `/test` は旧 `MainLayout` に残る。**すべての画面がMantine化済みとはみなさない。** 旧ページ／旧UIコンポーネントのソースは一部残存している。
-- `@tanstack/react-table: ^9.3.1` は継続使用。現時点でTanStack Tableを使用するのは主に `components/test/TanstackTable.tsx`。ユーザー一覧はMantine `Table` と `Pagination` を使用する。
-- UIコンポーネントは原則Mantine標準品を直接使い、Propsで調整。独自CSSは必要最小限にとどめる。
-
-利用者が2026-10-27に `docker compose exec frontend npm run build` の成功と画面の正常動作を確認。ビルド時にはJSチャンクが500KBを超えるサイズ警告が出たが、ビルドエラーではない。本資料の更新作業ではビルド・ブラウザ操作を再実行していない。
+- **Mantine 9を現行UIに採用。** `frontend/src/main.tsx`では`MantineProvider`、独自theme、`QueryClientProvider`、Mantine Notificationsを設定。
+- `frontend/src/routes/AppRoutes.tsx`からホーム、ユーザーCRUD、J-Quantsの4種データ一覧、キャッシュ管理画面をすべて`MainLayoutMantine`に接続。旧`MainLayout.tsx`と`/test`ルートは2026-11-05のコミットで削除。
+- キャッシュ管理画面: `/jquants/cache`（管理一覧・検索・ページング）、`/jquants/cache/detail`（新規起動）、`/jquants/cache/detail/:mgmtId`（管理詳細・再実行・削除）。
+- データ一覧: `/jquants/master`、`/jquants/dailyquote`、`/jquants/valuation`、`/jquants/summary`。Mantine Table/PaginationとTanStack Queryを利用。Table v9の依存はあるが、これらの現行一覧がTanStack Tableを使用しているわけではない。
+- 利用者が2026-11-04に`docker compose exec frontend npm run build`の成功を報告（Vite v8.1.4、JS 727.69 kB／gzip 220.08 kB）。500 kB超のチャンク警告はエラーではない。今回の資料更新ではビルド・画面操作は再実行していない。
 
 ## 4. Backendディレクトリ・役割
 
@@ -74,7 +70,9 @@ backend/
 ├─ app/
 │  ├─ main.py                             # FastAPIのアプリ・Router登録
 │  ├─ api/
-│  │  └─ cache_batch.py                   # キャッシュ起動API
+│  │  ├─ cache_batch.py                   # キャッシュ起動API
+│  │  ├─ cache_mgmt.py                    # キャッシュ管理API
+│  │  └─ jquants.py                       # 4種のデータ一覧API
 │  ├─ schemas/
 │  │  └─ cache_batch.py                   # CacheBatchRequest
 │  ├─ clients/
@@ -178,12 +176,12 @@ Datasetステータスは`Waiting`、`Running`、`Complete`、`Error`（実行�
 - `Waiting`/`Running`/`Error`のDatasetは、同じ管理IDで再度起動した際に処理対象となる。`Complete`はスキップする。
 - 管理レコードの`create`/`update`/`delete`は現状、Repository内部で`commit()`を実行する設計。
 
-**留意:** `Running`を再実行対象に含めるため、同じ管理IDを同時に起動させると重複実行の可能性があります。これは運用上の制約であり、排他ロック機構は実装済みとみなさないでください。
+**留意:** バッチ本体は開始時に`Running`または4つとも`Complete`なら処理を拒否する。ただし確認はBackgroundTasks側で行うため、APIは先に202を返す。DBロック等を使った厳密な排他制御は未実装で、限定的な競合は運用上許容する方針。Docker強制終了で`Running`が残ることがある。
 
 ## 8. 起動APIと実行フロー
 
 Router: `backend/app/api/cache_batch.py`  
-Endpoint: **`POST /batches/jquants/cache/plain`**  
+Endpoint: **`POST /batches/jquants/cache/start`**  
 HTTP Status: **202 Accepted**
 
 リクエストSchema (`CacheBatchRequest`):
@@ -224,12 +222,26 @@ FastAPI Router
        jquants_cache()
          1. 管理レコード取得
          2. 上場銘柄マスタ更新（対象ステータスのみ）
-         3. 対象銘柄リスト取得（全件または指定code）
+          3. 上場銘柄マスタは最新情報を取得
          4. 日足株価キャッシュ
          5. バリュエーションキャッシュ
          6. 財務サマリーキャッシュ
          7. Dataset単位でComplete/Errorを記録
 ```
+
+### 8.1 管理・データ一覧API
+
+| 操作 | HTTP | Endpoint | 備考 |
+|---|---|---|---|
+| キャッシュ管理一覧 | GET | `/cachemgmt/list` | `keyword`（管理ID部分一致）、`date`（管理対象期間に含む日付）、`page`、`limit` |
+| キャッシュ管理詳細 | GET | `/cachemgmt/{mgmt_id}` | 不存在は404 |
+| キャッシュ管理削除 | DELETE | `/cachemgmt/{mgmt_id}` | 204。実行中も削除可能 |
+| 上場銘柄 | GET | `/jquants/master` | 検索・ソート・ページング |
+| 株価四本値 | GET | `/jquants/dailyquote` | 同上 |
+| バリュエーション | GET | `/jquants/valuation` | 同上 |
+| 財務サマリー | GET | `/jquants/summary` | 同上 |
+
+APIの日付はJSONでは文字列（`YYYY-MM-DD`またはISO日時）。Frontendの`CacheMgmtRecord`も`string`で定義し、新規キャッシュ起動の`fromDate`/`toDate`は`YYYY-MM-DD`で送る。
 
 ## 9. Transaction・Error設計
 
@@ -267,7 +279,8 @@ docker compose ps
 - ページネーション対応：ユーザーの取得確認により現時点では保留。API仕様で将来分割が発生しない保証を確認したものではない。
 - 管理IDの同一秒衝突対策：発生頻度が低いとして意図的に保留。
 - 上場廃止銘柄をマスタから除外する仕組み：別途検討。
-- 入力日付の範囲検証、管理IDの存在事前確認、長時間バッチの排他・中断・復旧、進捗確認用のREST GET API：必要性に応じて今後検討。
+- 新規起動画面では`fromDate <= toDate`を検証。起動API自体での追加検証、厳密なジョブ排他・中断・復旧、自動状態更新は保留。
+- 管理情報のREST GET（一覧・詳細）とDELETEは実装済み。実行中の管理レコード削除も許容する方針。
 - J-Quantsキャッシュ機能は実装済み。全銘柄・長期間の稼働性能や障害復旧まで本資料作成時に検証したものではない。
 
 ---
