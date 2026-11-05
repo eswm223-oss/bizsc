@@ -1,7 +1,7 @@
 # BizSC Project Overview
 
-更新日: 2026-10-27  
-確認したGitHubソースのコミット（本更新前）: [`6b577b8`](https://github.com/eswm223-oss/bizsc/commit/6b577b832beb6f661a97a87fd697fa3b9dbaf8ae)
+更新日: 2026-11-05  
+確認したGitHubソースのコミット（本更新前）: [`e0d43a3`](https://github.com/eswm223-oss/bizsc/commit/e0d43a38f4d1286d1cbac7cdc0d87e11b6e6f3f1)
 
 ## 1. プロジェクトの目的
 
@@ -31,7 +31,7 @@ Reactによる銘柄分析画面
 
 ### J-Quants（現在の主データソース）
 
-2026-09-26にJ-Quants中心へ切り替え。2026-10-25時点で以下の**Client / Model / Repository / Service / キャッシュ起動APIの実装**を確認した。
+2026-09-26にJ-Quants中心へ切り替え。2026-11-05時点で以下の**Client / Model / Repository / Service / キャッシュ起動・管理API、およびFrontendの管理・一覧画面の実装**を確認した。
 
 | Dataset | 主な用途 | DBテーブル |
 |---|---|---|
@@ -65,14 +65,13 @@ Frontend → FastAPI Router → Service → Repository → PostgreSQL
                      Batch / Cache Service → J-Quants Client → J-Quants API
 ```
 
-### Frontend UIの現在地（2026-10-27）
+### Frontend UIの現在地（2026-11-05）
 
-- BootstrapからMantine 9へ移行。Bootstrapのnpm依存関係は削除済み。
-- ホーム画面、ユーザー一覧・詳細・新規登録・編集画面はMantineコンポーネントで新規作成し、既存URLから新画面を参照している。
-- Mantine `AppShell` によるヘッダー・ナビゲーションとライト／ダークモード切替を実装。
-- ユーザー管理機能は画面・API連携を確認するためのサンプルであり、BizSCの主機能は今後の株式スクリーニング。
-- `/jquants/master` および `/test` は従来のレイアウトを使用し、TanStack Table v9も継続利用している。
-- 利用者がフロントエンドのビルド成功と画面の正常動作を確認。JSチャンクサイズの警告は発生するがビルドは成功。
+- BootstrapからMantine 9へ移行。現行ルート（ホーム、ユーザーCRUD、J-Quantsデータ一覧、キャッシュ管理）は`MainLayoutMantine`配下。
+- キャッシュ管理画面では管理一覧検索・状態表示、新規起動、詳細確認、未完了分の再実行、削除を操作できる。
+- `/jquants/master`、`/jquants/dailyquote`、`/jquants/valuation`、`/jquants/summary`にデータ一覧を配置。
+- TanStack QueryでAPI結果をキャッシュし、Mantine Notificationsで起動・削除結果を表示。旧`MainLayout.tsx`と`/test`ルートは削除済み。
+- 利用者から2026-11-04のFrontendビルド成功報告あり。JSチャンク500 kB超の警告はあるがビルドエラーはなし。
 
 ## 4. J-Quantsキャッシュ機能の現在地
 
@@ -82,7 +81,9 @@ Frontend → FastAPI Router → Service → Repository → PostgreSQL
 - SQLAlchemy Model、Alembicを使ったDB管理、Repository／Service。
 - 主キーの生成と`merge`による同一レコード上書き。
 - 財務APIの欠損値変換（空文字列→NULL相当）。
-- 管理ID単位のキャッシュ起動: `POST /batches/jquants/cache/plain`（HTTP 202）。
+- 管理ID単位のキャッシュ起動: `POST /batches/jquants/cache/start`（HTTP 202）。
+- 管理API: `GET /cachemgmt/list`、`GET /cachemgmt/{mgmt_id}`、`DELETE /cachemgmt/{mgmt_id}`。
+- Reactのキャッシュ管理一覧・新規起動・詳細・削除画面、およびJ-Quantsの4種類のデータ一覧を実装。
 - `cache_mgmt`テーブルに開始日・終了日・銘柄コード・Dataset別ステータス・remarksを保存。
 - `Waiting`→`Running`→`Complete`／`Error`、ステータスに基づく再実行。
 - 指定銘柄のみ、またはマスタ全銘柄を対象にキャッシュ処理。
@@ -92,7 +93,7 @@ Frontend → FastAPI Router → Service → Repository → PostgreSQL
 
 ### 実行上の留意点
 
-APIの202応答は受付完了であってバッチ完了ではない。バックグラウンド処理はFastAPIのプロセス内で動くため、停止・再起動・長時間実行時の運用設計は将来検討する。
+APIの202応答は受付完了であってバッチ完了ではない。バックグラウンド処理はFastAPIのプロセス内で動く。バッチ本体にRunning/Completeの確認はあるが厳密なDB排他は未実装。停止・再起動・長時間実行時の復旧は必要に応じて検討する。実行中の管理レコード削除は許容する方針。
 
 「実装済み」はGitHubソースに確認できるという意味であり、本資料作成時に全銘柄・全期間の統合テストを実施したものではない。
 
@@ -102,11 +103,11 @@ APIの202応答は受付完了であってバッチ完了ではない。バッ�
 |---|---|---|
 | Docker / FastAPI / DB / Reactの基盤 | 完了 | 基本起動環境 |
 | User CRUD / React画面 | 完了 | サンプルのホーム・ユーザー画面をMantine化。一覧・検索・フィルタ・ソート・ページングを含む |
-| Frontend UI基盤のMantine移行 | 完了（一部旧レイアウト残存） | Bootstrap依存を削除。J-Quants・テスト画面は既存レイアウトを維持 |
+| Frontend UI基盤のMantine移行 | 完了（現行ルート） | J-Quants画面もMantineへ統合。旧レイアウト・`/test`を削除 |
 | EDINET書類棚卸し | Legacyとして実装済み | 主データソースからは移行 |
 | J-Quants API Client | 実装済み | 4 Dataset |
 | J-Quantsデータ保存Model・Repository・Service | 実装済み | 銘柄・株価・Valuation・財務 |
-| J-Quantsキャッシュ実行API・状態管理 | 実装済み | BackgroundTasks、cache_mgmt |
+| J-Quantsキャッシュ実行・管理APIと画面 | 実装済み | BackgroundTasks、cache_mgmt、管理一覧・新規・詳細・削除 |
 | Screening指標計算 | 今後の実装 | 定義と優先順位の整理が次の候補 |
 | Screening条件検索API・画面 | 今後の実装 | キャッシュしたデータを利用 |
 | 日次自動Scheduler / 外部ワーカー | 未導入 | 必要性を見て検討 |
@@ -150,7 +151,7 @@ APIに含まれる指標とBizSC側で計算する派生値を分けて設計す
 2. **Screening指標の仕様確定**: 指標・期間・比較基準・計算式、対象データが不足する場合の扱いを決める。
 3. **Screening Backend**: 複数テーブルの連結、条件検索、ソート、ページングを実装。
 4. **Screening Frontend**: Mantineを標準UIとして、条件入力、結果一覧、銘柄詳細、チャートなどを小さく段階追加。TanStack Table v9は必要に応じて利用。
-5. **運用改善**: 必要に応じて進捗参照API、定期取得、ジョブ排他・中断処理などを追加。
+5. **運用改善**: 必要に応じて進捗画面の自動更新、定期取得、ジョブ中断・復旧を追加。厳密な排他は状況が限定的として現状保留。
 
 ### 意図的に保留する項目
 
@@ -178,4 +179,4 @@ docs/project-overview.md    # プロジェクトの目的とロードマップ
 
 ---
 
-**現在地（2026-10-27）**: J-Quantsデータのキャッシュ処理とホーム・ユーザー管理サンプル画面のMantine移行を実装。次の主題は、キャッシュ済み株価・財務データを活用するスクリーニング機能の設計・実装。
+**現在地（2026-11-05）**: J-Quantsキャッシュ処理・管理APIと画面、4種のデータ一覧を実装し、現行ルートのMantine移行を完了。次の主題は、キャッシュ済み株価・財務データを活用するスクリーニング機能の設計・実装。
