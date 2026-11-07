@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 from app.db.base import Base
@@ -6,8 +7,8 @@ from sqlalchemy import (
     BigInteger,
     DateTime,
     ForeignKey,
+    Integer,
     String,
-    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -16,24 +17,17 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 class ScreeningRule(Base):
     __tablename__ = "screening_rule"
-    __table_args__ = (
-        UniqueConstraint(
-            "group_id",
-            "sequence",
-            name="screening_rule_groupid_sequence",
-        ),
-    )
 
     # DB内部ID（group_id-sequence）
-    id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
 
     # screening_groupのid
     group_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("screening_group.id"), nullable=False
+        BigInteger,
+        ForeignKey("screening_group.id"),
+        nullable=False,
+        index=True,
     )
-
-    # 連番
-    sequence: Mapped[int] = mapped_column(nullable=False)
 
     # metric_registryのcode
     metric_code: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -43,6 +37,12 @@ class ScreeningRule(Base):
         JSONB,
         nullable=False,
         default=dict,
+    )
+
+    # 条件を満たした際の加点・減点
+    points: Mapped[Decimal] = mapped_column(
+        Integer,
+        nullable=False,
     )
 
     # DB更新日時

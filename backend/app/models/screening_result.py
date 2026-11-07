@@ -6,9 +6,9 @@ from sqlalchemy import (
     BigInteger,
     DateTime,
     ForeignKey,
-    Numeric,
+    Index,
+    Integer,
     String,
-    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -17,11 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 class ScreeningResult(Base):
     __tablename__ = "screening_result"
     __table_args__ = (
-        UniqueConstraint(
-            "rule_id",
-            "company_code",
-            name="screening_result_ruleid_company",
-        ),
+        Index("idx_screening_result", "group_id", "rule_id", "company_code"),
     )
 
     # DB内部ID（itemId-company_code）
@@ -34,7 +30,7 @@ class ScreeningResult(Base):
 
     # screening_ruleのid
     rule_id: Mapped[int] = mapped_column(
-        String(20), ForeignKey("screening_rule.id"), nullable=False
+        BigInteger, ForeignKey("screening_rule.id"), nullable=False
     )
 
     # 銘柄コード（5桁）
@@ -45,8 +41,8 @@ class ScreeningResult(Base):
     )
 
     # 点数
-    socre: Mapped[Decimal | None] = mapped_column(
-        Numeric,
+    score: Mapped[Decimal] = mapped_column(
+        Integer,
         nullable=False,
     )
 
