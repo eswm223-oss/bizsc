@@ -18,7 +18,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 class ScreeningRule(Base):
     __tablename__ = "screening_rule"
 
-    # DB内部ID（group_id-sequence）
+    # DB内部ID（自動採番）
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
 
     # screening_groupのid
