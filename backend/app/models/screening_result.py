@@ -35,13 +35,11 @@ class ScreeningResult(Base):
 
     # screening_groupのid
     group_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("screening_group.id"), nullable=False
+        BigInteger, ForeignKey("screening_group.id", ondelete="CASCADE"), nullable=False
     )
 
     # screening_ruleのid
-    rule_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("screening_rule.id"), nullable=False
-    )
+    rule_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
     # 銘柄コード（5桁）
     company_code: Mapped[str] = mapped_column(

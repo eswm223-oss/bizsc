@@ -23,7 +23,7 @@ class ScreeningRule(Base):
     # screening_groupのid
     group_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("screening_group.id"),
+        ForeignKey("screening_group.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
