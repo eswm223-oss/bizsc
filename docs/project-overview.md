@@ -1,7 +1,7 @@
 # BizSC Project Overview
 
-更新日: 2026-11-05  
-確認したGitHubソースのコミット（本更新前）: [`e0d43a3`](https://github.com/eswm223-oss/bizsc/commit/e0d43a38f4d1286d1cbac7cdc0d87e11b6e6f3f1)
+更新日: 2026-11-07  
+確認したGitHubソースのコミット（本更新前）: [`03dd928`](https://github.com/eswm223-oss/bizsc/commit/03dd9288d526cbc814696d5da4912121bd9dd4b5)
 
 ## 1. プロジェクトの目的
 
@@ -108,7 +108,8 @@ APIの202応答は受付完了であってバッチ完了ではない。バッ�
 | J-Quants API Client | 実装済み | 4 Dataset |
 | J-Quantsデータ保存Model・Repository・Service | 実装済み | 銘柄・株価・Valuation・財務 |
 | J-Quantsキャッシュ実行・管理APIと画面 | 実装済み | BackgroundTasks、cache_mgmt、管理一覧・新規・詳細・削除 |
-| Screening指標計算 | 今後の実装 | 定義と優先順位の整理が次の候補 |
+| Screeningテーブルモデル・DBマイグレーション | 実装済み・DB適用報告あり | group / rule / result の3テーブル、Alembic `6f4a06038265`。CASCADE動作テストは未確認 |
+| Screening指標計算・キャッシュ実行 | 未実装 | ルールに基づくスコア計算、刷新、状態遷移は今後実装 |
 | Screening条件検索API・画面 | 今後の実装 | キャッシュしたデータを利用 |
 | 日次自動Scheduler / 外部ワーカー | 未導入 | 必要性を見て検討 |
 
@@ -143,13 +144,22 @@ AND
 
 APIに含まれる指標とBizSC側で計算する派生値を分けて設計する。
 
+### 評価ルール方式（2026-11-07時点でDBモデル作成済み）
+
+- 利用者が評価項目（`metric_code`）、条件（`params`）、加点・減点（`points`、整数）をルールごとに設定する方式。
+- 評価項目ごとに条件の形が異なるため、`params`はPostgreSQLの`JSONB`で保持。指標コードとパラメータ型の対応・検証は今後のアプリケーション実装で扱う。
+- `screening_group`は名称・キャッシュ状態・実行開始日時・最終キャッシュ日時を持ち、`screening_rule`はグループ配下のルールを保持。
+- `screening_result`は**1銘柄 × 1ルール**ごとの計算結果を保持し、`group_id`で対象グループを絞り込み、銘柄別に`SUM(score)`してランキングする。結果はグループ単位で刷新する。
+- グループ削除時はルール・結果を`ON DELETE CASCADE`で削除。結果側の`rule_id`は外部キー制約を設けず、ルール単体の編集・削除を許容する（再計算前の古い結果を最新として扱わない制御は今後実装）。
+- 作成したDBモデル：`backend/app/models/screening_{group,rule,result}.py`。Alembic：`6f4a06038265_add_screening_cascade_delete.py`。利用者から`alembic upgrade head`成功の報告あり。削除連動とスコア集計の実動作は未検証。
+
 ## 7. 今後の開発ロードマップ
 
 ### 次の優先候補
 
 1. **保存データの小範囲確認**: 1銘柄・短期間の登録、管理ステータス、欠損値、検索結果を確認。
-2. **Screening指標の仕様確定**: 指標・期間・比較基準・計算式、対象データが不足する場合の扱いを決める。
-3. **Screening Backend**: 複数テーブルの連結、条件検索、ソート、ページングを実装。
+2. **Screening指標の仕様確定**: `metric_code`とPydanticパラメータ型の対応、期間・比較基準・計算式、欠損値の扱いを決める。
+3. **Screening Backend**: group/ruleのCRUD、ルール別採点、グループ単位のキャッシュ刷新・状態管理、合計スコア順の一覧APIを実装。
 4. **Screening Frontend**: Mantineを標準UIとして、条件入力、結果一覧、銘柄詳細、チャートなどを小さく段階追加。TanStack Table v9は必要に応じて利用。
 5. **運用改善**: 必要に応じて進捗画面の自動更新、定期取得、ジョブ中断・復旧を追加。厳密な排他は状況が限定的として現状保留。
 
@@ -179,4 +189,4 @@ docs/project-overview.md    # プロジェクトの目的とロードマップ
 
 ---
 
-**現在地（2026-11-05）**: J-Quantsキャッシュ処理・管理APIと画面、4種のデータ一覧を実装し、現行ルートのMantine移行を完了。次の主題は、キャッシュ済み株価・財務データを活用するスクリーニング機能の設計・実装。
+**現在地（2026-11-07）**: J-Quantsキャッシュ処理・管理APIと画面、4種のデータ一覧、Mantine移行は実装済み。スクリーニングの3テーブルとAlembic適用まで完了報告あり。次は評価指標Registry・Pydanticによる条件検証、group/rule CRUD、スコア計算・結果キャッシュ刷新・一覧APIの実装。
