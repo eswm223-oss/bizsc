@@ -1,7 +1,7 @@
 # BizSC Architecture
 
-更新日: 2026-11-05  
-確認したGitHubソースのコミット（本更新前）: [`e0d43a3`](https://github.com/eswm223-oss/bizsc/commit/e0d43a38f4d1286d1cbac7cdc0d87e11b6e6f3f1)
+更新日: 2026-11-07  
+確認したGitHubソースのコミット（本更新前）: [`03dd928`](https://github.com/eswm223-oss/bizsc/commit/03dd9288d526cbc814696d5da4912121bd9dd4b5)
 
 ## 1. 目的と読み方
 
@@ -102,7 +102,10 @@ backend/
 │  │  ├─ jquants_listed_issue.py
 │  │  ├─ jquants_daily_quote.py
 │  │  ├─ jquants_valuation.py
-│  │  └─ jquants_financial_summary.py
+│  │  ├─ jquants_financial_summary.py
+│  │  ├─ screening_group.py              # グループ・キャッシュ管理
+│  │  ├─ screening_rule.py               # ルール・JSONB条件・点数
+│  │  └─ screening_result.py             # ルール別・銘柄別スコア
 │  └─ db/database.py                      # SessionLocal / get_db
 └─ tests/
 ```
@@ -254,7 +257,7 @@ APIの日付はJSONでは文字列（`YYYY-MM-DD`またはISO日時）。Fronten
 
 ## 10. マイグレーションと動作確認
 
-関連するAlembic revisionはGitHubの`backend/alembic/versions/`を確認。キャッシュ管理テーブルの導入・修正のrevisionとして`70d536cc789d`、`1659bc942177`、`c9a27d03baec`、`3b15924e084c`が存在し、`29992610a0a9`は空のupgrade/downgradeです。
+関連するAlembic revisionはGitHubの`backend/alembic/versions/`を確認。J-Quantsキャッシュ管理テーブルの導入・修正のrevisionとして`70d536cc789d`、`1659bc942177`、`c9a27d03baec`、`3b15924e084c`が存在し、`29992610a0a9`は空のupgrade/downgradeです。Screening 3テーブルの初回作成は`6f4a06038265_add_screening_cascade_delete.py`（down_revision: `29992610a0a9`）。利用者の2026-11-07の`alembic upgrade head`ログはエラーなく終了。CASCADEの削除実テストは未確認。
 
 実装変更後の基本確認:
 
@@ -268,13 +271,38 @@ docker compose ps
 
 起動APIは`http://localhost:8000/docs`のSwagger UIでも確認できます。管理テーブルと保存結果の確認にはTablePlusを利用します。
 
-## 11. 既存機能と将来の責務
+## 11. Screeningデータモデル（2026-11-07時点）
+
+GitHubコミット [`screening_table_fix3`](https://github.com/eswm223-oss/bizsc/commit/03dd9288d526cbc814696d5da4912121bd9dd4b5) でモデルとAlembic生成ファイルを確認。**DBテーブル定義とマイグレーションは作成済み**。ルールのCRUD API、指標計算、結果キャッシュの起動・刷新、画面はまだ未実装。
+
+| テーブル | 主要カラム | 役割 |
+|---|---|---|
+| `screening_group` | `id` (BigInteger PK)、`name`、`cache_status`、`cache_remarks`、`cache_started_at`、`cached_at`、`updated_at` | 評価グループのヘッダーとキャッシュ管理 |
+| `screening_rule` | `id` (BigInteger PK)、`group_id`、`metric_code`、`params` (JSONB)、`points` (Integer)、`updated_at` | 評価項目ごとの条件と加点・減点 |
+| `screening_result` | `id` (String PK, `ruleid-company_code`想定)、`group_id`、`rule_id`、`company_code`、`score` (Integer)、`updated_at` | 1銘柄 × 1ルールの採点キャッシュ |
+
+### 関連と削除時の動作
+
+- `screening_rule.group_id → screening_group.id` は `ON DELETE CASCADE`。
+- `screening_result.group_id → screening_group.id` も `ON DELETE CASCADE`。グループ削除時は両テーブルの該当データをDBが連動削除する。
+- `screening_result.rule_id` は **外部キーなし**（数値列のみ）。ルール単体の削除・編集を妨げない。結果に削除済み`rule_id`が残る可能性はあり、キャッシュ無効化・刷新で対応する方針。
+- `screening_result`には`UNIQUE(rule_id, company_code)`。結果取得・刷新用に`(group_id, rule_id, company_code)`と`(group_id, company_code)`のインデックスなどを保持。インデックス削減・性能測定は必要になった段階で行う。
+- `screening_result.group_id` はJOINなしでグループ単位の全銘柄結果を抽出・削除するため意図的に保持している。ルールの`group_id`との一致はDB上の複合外部キーでは保証されない。
+
+### スコア計算・キャッシュの設計方針（未実装）
+
+- `metric_code`に対応する評価条件をPydanticで検証し、`params`は辞書全体を新しい辞書で置換する。SQLAlchemyの通常のJSONBはネストした辞書のインプレース変更を自動検知しないため。
+- 各銘柄×各ルールの`score`を保存し、`WHERE group_id = ... GROUP BY company_code`の`SUM(score)`を合計点として降順表示する。
+- キャッシュの再計算は、結果を用意した後に**対象グループの古い結果削除＋新規結果登録を同一DBトランザクション**で行う方針。成功時にキャッシュ状態・完了日時も更新する。
+- ルール追加・変更・削除時はキャッシュを無効状態にして、刷新前の古い結果を最新として表示しない制御が必要。`cache_status`の状態値、競合処理、0点の結果登録方針は実装時に整理する。
+
+## 12. 既存機能と将来の責務
 
 - **User Domain:** CRUD、検索、フィルタ、ソート、ページングを維持。ホーム・ユーザー系はMantine版へ切替済み（サンプル機能）。
 - **EDINET Legacy:** CSV取得可能書類の棚卸し、日付範囲Refresh、DB保存、CLI Batchを実装済み。2026-09-26以降の主データソースはJ-Quantsへ移行。EDINETのコード・テーブルは維持し、財務解析拡張は行わない方針。
-- **Screening:** 価格変動率、52週高値・安値、52週高値からの下落率、PER/PBR/配当利回り、業績と株価の乖離などの判定は今後の業務ロジック/UI対象。
+- **Screening:** group / rule / resultのモデル・DBスキーマ作成まで完了。価格変動率、52週高値・安値、高値からの下落率、PER/PBR/配当利回り、業績と株価の乖離などの計算・採点・UIは今後実装。
 
-## 12. 現時点で保留する事項・制約
+## 13. 現時点で保留する事項・制約
 
 - ページネーション対応：ユーザーの取得確認により現時点では保留。API仕様で将来分割が発生しない保証を確認したものではない。
 - 管理IDの同一秒衝突対策：発生頻度が低いとして意図的に保留。
