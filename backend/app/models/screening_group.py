@@ -24,13 +24,13 @@ class ScreeningGroup(Base):
     )
 
     # cache開始日時
-    cache_started_at: Mapped[datetime] = mapped_column(
+    cache_started_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
 
     # 最後にcacheされた日時
-    cached_at: Mapped[datetime] = mapped_column(
+    cached_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
