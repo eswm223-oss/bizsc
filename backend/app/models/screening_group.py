@@ -11,6 +11,12 @@ class ScreeningGroup(Base):
     # DB内部ID（自動採番）
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
 
+    # 名前
+    name: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+    )
+
     # キャッシュ処理のステータス
     cache_status: Mapped[str | None] = mapped_column(
         String(10),

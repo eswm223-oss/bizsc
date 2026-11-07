@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from typing import Any
 
 from app.db.base import Base
@@ -40,7 +39,7 @@ class ScreeningRule(Base):
     )
 
     # 条件を満たした際の加点・減点
-    points: Mapped[Decimal] = mapped_column(
+    points: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
     )

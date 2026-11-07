@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 
 from app.db.base import Base
 from sqlalchemy import (
@@ -9,6 +8,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -17,10 +17,20 @@ from sqlalchemy.orm import Mapped, mapped_column
 class ScreeningResult(Base):
     __tablename__ = "screening_result"
     __table_args__ = (
+        UniqueConstraint(
+            "rule_id",
+            "company_code",
+            name="uq_screening_result_rule_company",
+        ),
         Index("idx_screening_result", "group_id", "rule_id", "company_code"),
+        Index(
+            "ix_screening_result_group_company",
+            "group_id",
+            "company_code",
+        ),
     )
 
-    # DB内部ID（itemId-company_code）
+    # DB内部ID（ruleid-company_code）
     id: Mapped[str] = mapped_column(String(50), primary_key=True)
 
     # screening_groupのid
@@ -41,7 +51,7 @@ class ScreeningResult(Base):
     )
 
     # 点数
-    score: Mapped[Decimal] = mapped_column(
+    score: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
     )
