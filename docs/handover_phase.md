@@ -1,13 +1,13 @@
 # BizSC Handover Phase
 
-更新日: 2026-11-05  
-確認したGitHubソースのコミット（本更新前）: [`e0d43a3`](https://github.com/eswm223-oss/bizsc/commit/e0d43a38f4d1286d1cbac7cdc0d87e11b6e6f3f1)
+更新日: 2026-11-07  
+確認したGitHubソースのコミット（本更新前）: [`03dd928`](https://github.com/eswm223-oss/bizsc/commit/03dd9288d526cbc814696d5da4912121bd9dd4b5)
 
 ## 1. この資料の目的／次のチャットへの引継ぎ
 
-BizSCは、日本株向けの株式スクリーニングアプリ。**J-Quantsのキャッシュ実行・管理APIおよび管理画面・4種データ一覧を実装し、現行画面のMantine移行を一区切り完了**した。次は保存データを利用するスクリーニング処理の設計や、必要な実データ確認・Frontend連携へ進められる状態にある。
+BizSCは、日本株向けの株式スクリーニングアプリ。**J-Quantsのキャッシュ実行・管理APIと画面を実装し、スクリーニングのgroup/rule/resultのモデル・DBマイグレーションまで追加済み**。次は評価項目Registry、Pydanticの条件検証、Screening CRUD、スコア計算と結果キャッシュ刷新を実装する段階。
 
-重要: 「コード実装の完了」と「全条件での長期間バッチ稼働検証済み」は区別する。GitHubの確認済みソースを基準に記述しており、この資料更新に際してDBや実APIの結合実行は行っていない。利用者から2026-11-04のFrontendビルド成功の報告があった。今回の資料更新では結合実行・ブラウザ操作をしていない。
+重要: 「コード実装の完了」と「全条件での長期間バッチ稼働検証済み」は区別する。GitHubソースを基準に記述し、今回の資料更新ではDB・API結合実行やブラウザ操作をしていない。利用者から2026-11-04のFrontendビルド成功、および2026-11-07のScreening Alembic適用成功ログの報告あり。CASCADE実動作とScreening採点処理は未検証・未実装。
 
 GitHub: <https://github.com/eswm223-oss/bizsc>  
 Workspace: `D:\Development\apps\bizsc`
@@ -90,6 +90,25 @@ CacheBatch / CacheDetail → frontend/src/api/cache.ts
 
 FrontendはMantine 9、TanStack Query、Mantine Notificationsを利用。キャッシュ管理一覧・詳細に自動ポーリングは未実装であり、進捗は画面再表示等で確認する。
 
+## 5.1 Screeningテーブル設計の確定（2026-11-07）
+
+対象コミット: [`screening_table_fix3`](https://github.com/eswm223-oss/bizsc/commit/03dd9288d526cbc814696d5da4912121bd9dd4b5)。
+
+| テーブル | 用途 | 主な設計 |
+|---|---|---|
+| `screening_group` | グループ名とキャッシュ管理 | `id`自動採番、`name`、状態・備考・開始・最終キャッシュ日時 |
+| `screening_rule` | 利用者が選ぶ指標・条件・点数 | `id`自動採番、`group_id`、`metric_code`、`params` JSONB、`points` Integer |
+| `screening_result` | 1銘柄×1ルールの採点結果 | `id` (`ruleid-company_code`想定)、`group_id`、`rule_id`（FKなし）、`company_code`、`score` Integer、`UNIQUE(rule_id, company_code)` |
+
+- `screening_rule.group_id`と`screening_result.group_id`は`screening_group.id`を参照し、いずれも`ON DELETE CASCADE`。グループ削除は関連ルール・結果の全件削除とする。
+- `screening_result.rule_id`には外部キーを設定しない。ルール単体の編集・削除を許容し、古い結果は後続のグループ単位キャッシュ刷新で置換する。
+- `group_id`は全銘柄結果のグループ単位取得・削除を速く簡単にするため結果テーブルにも保持。`rule.group_id`との不一致防止はアプリケーション実装上の課題。
+- `params`は指標ごとに構造が異なるので`JSONB`。更新時はPydantic検証後に新しい辞書全体を再代入する方針（MutableDictは必須ではない）。
+- 総合スコアは対象`group_id`の結果を`company_code`で集計して`SUM(score)`し、得点順に表示する設計。
+- キャッシュは**計算→グループ単位で旧結果削除＋新結果登録（同一トランザクション）**の刷新方式。ルール編集・削除時のキャッシュ無効化と状態遷移は未実装。
+- Alembic: `backend/alembic/versions/6f4a06038265_add_screening_cascade_delete.py`。利用者の`alembic upgrade head`ログはエラーなし。DB上のCASCADE削除テストはまだ行っていない。
+- **未実装:** ScreeningのRepository / Service / API / Frontend、`metric_registry`とPydanticパラメータ型、採点処理、キャッシュ実行・一覧出力。0点の保存範囲・欠損データの扱い等はこれから検討。
+
 ## 6. 主な変更履歴（概要）
 
 - `jquants_service_2` 系: J-Quants 4種類のModel / Repository / Service / Cacheを整理。`db.merge`、日付範囲・企業名検索を実装。
@@ -97,6 +116,7 @@ FrontendはMantine 9、TanStack Query、Mantine Notificationsを利用。キャ�
 - `jquants_chche_process_fix` ～ `fix_3`: Router登録、`SessionLocal()`利用、引数順、ステータス表記、銘柄絞り込み、日付条件、リトライとエラー処理を修正。
 - **`jquants_chche_process_fix_4`**: ClientのHTTPエラー時にレスポンス本文の`message`を例外へ反映。Cache内の処理状態変数を整理し、日足株価・Valuation・財務サマリーAPI前に1秒間隔を追加。API側で空の`mgmtId`も新規扱い。
 - **Mantine UI移行（2026-11-05確認）**: ホーム・ユーザーCRUDに加えてJ-Quants管理／一覧画面もMantine版へ切替。`jquants_front作成`〜`fix3`で画面連携と型を修正し、`jquants_cache_front`で旧レイアウト・`/test`画面を整理。
+- **Screeningテーブル（2026-11-07）**: `screening_table` → `fix` → `fix2` → `fix3`でモデルを整理、CASCADE設定とAlembic初回作成まで完了。
 
 ### UI移行後の確認事項（2026-11-05）
 
@@ -124,13 +144,13 @@ LIMIT 20;
 
 各DBテーブルでも指定銘柄のデータ件数、日付範囲、キー重複、数値NULLの扱いを確認する。最新コミット確認以外の結合動作検証は本資料では未実施。
 
-### Step 2: スクリーニング条件と取得済みデータの対応を整理
+### Step 2: 評価指標のRegistryと条件検証を設計
 
-最初に、最新株価、52週高値・安値、高値からの下落率、直近騰落率、PER、PBR、時価総額、売上高・営業利益・純利益の伸び等を「API値」「DB保存値」「BizSCで計算する指標」に分類する。
+既存の`screening_rule.metric_code`に対応する指標ID・ラベル・Pydanticパラメータ型を整理。最新株価、52週高値・安値、高値からの下落率、騰落率、PER/PBR、業績成長などを「API値」「DB保存値」「BizSCで計算する指標」に分類し、欠損時の扱いを定める。
 
 ### Step 3: ScreeningのRepository / Service / API設計
 
-銘柄一覧、条件検索、業績が伸びているのに株価が低迷する銘柄の抽出を小さいStepで実装。FrontendはBackendで必要なクエリが成立してから進める。
+まず`screening_group`・`screening_rule`のCRUD、ルール変更時のキャッシュ無効化、全銘柄のルール別スコア計算、`screening_result`のグループ単位一括刷新と`SUM(score)`順の一覧取得を小さいStepで実装。FrontendはBackend側のクエリとAPIが成立してから進める。
 
 ## 8. 未決定事項／意図的に保留するもの
 
@@ -139,7 +159,8 @@ LIMIT 20;
 - **上場廃止対応:** 現在のListedIssueマスタから不要銘柄を除去する処理は将来検討。
 - **実行停止・排他・中断後の再開:** FastAPI `BackgroundTasks`は同一アプリプロセス内。Docker停止で中断する可能性があり、自動継続はしない。厳密な排他は頻度が限定的として現状保留。
 - **長時間の全銘柄取得:** 各Datasetで銘柄単位のAPI呼び出し＋約1秒の間隔がある。全件処理時間・API制限・コンテナ停止時の復旧は別途評価。
-- **状態管理API:** 管理一覧・詳細GETと削除DELETEは実装済み。自動更新やリアルタイム通知は未実装。
+- **状態管理API:** J-Quantsの管理一覧・詳細GETと削除DELETEは実装済み。自動更新やリアルタイム通知は未実装。
+- **Screeningの運用詳細:** ルール変更後のキャッシュ無効化・`cache_status`値、0点の保存方針、再計算の同時実行やFKのない`rule_id`整合性チェックは今後実装時に決める。
 - **入力バリデーション・ID照合:** 新規起動画面では`fromDate <= toDate`を検証。管理詳細GETは不存在で404。起動API側の追加検証・存在事前確認は今後必要に応じて検討。
 
 ## 9. GitHubとDBの確認コマンド
