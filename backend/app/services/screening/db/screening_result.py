@@ -11,7 +11,6 @@ STATUS_LITERAL = Literal["Running", "Complete", "Error"] | None
 
 
 class Parameter(BaseModel):
-    id: str
     group_id: int
     rule_id: int
     company_code: str
@@ -27,6 +26,7 @@ class ScreeningResultService:
 
     def create_or_update(self, db: Session, para: Parameter) -> ScreeningResult:
         sorce = ScreeningResult(
+            id=f"{para.rule_id}-{para.company_code}",
             group_id=para.group_id,
             rule_id=para.rule_id,
             company_code=para.company_code,
@@ -34,13 +34,13 @@ class ScreeningResultService:
         )
         return self.repository.crate_or_update(db, sorce)
 
-    def get_by_id(self, db: Session, id: int) -> ScreeningResult | None:
+    def get_by_id(self, db: Session, id: str) -> ScreeningResult | None:
         return self.repository.get_by_id(db, id)
 
     def delete(
         self,
         db: Session,
-        id: int,
+        id: str,
     ) -> None:
         sorce = self.get_by_id(db, id)
         if sorce is None:

@@ -1,6 +1,5 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Literal
-from zoneinfo import ZoneInfo
 
 from app.common import cmm_date
 from app.models import ScreeningGroup
@@ -29,11 +28,8 @@ class ScreeningGroupService:
     ) -> None:
         self.repository = repository
 
-    def merge(self, db: Session, name: str) -> ScreeningGroup:
-        sorce = ScreeningGroup(
-            name=name,
-        )
-        return self.repository.merge(db, sorce)
+    def merge(self, db: Session, source: ScreeningGroup) -> ScreeningGroup:
+        return self.repository.merge(db, source)
 
     def get_by_id(self, db: Session, id: int) -> ScreeningGroup | None:
         return self.repository.get_by_id(db, id)
@@ -45,17 +41,25 @@ class ScreeningGroupService:
         status: STATUS_LITERAL,
         remarks: str | None = None,
     ) -> ScreeningGroup:
-        sorce = self.get_by_id(db, id)
-        if sorce is None:
+        source = self.get_by_id(db, id)
+        now = datetime.now(UTC)
+
+        if source is None:
             raise ValueError("進捗ステータスの取得に失敗しました。")
 
         if remarks is not None:
-            sorce.cache_remarks = remarks[:300]
+            source.cache_remarks = remarks[:300]
 
         if status == "Running":
-            sorce.cached_at = datetime.now(ZoneInfo("Asia/Tokyo"))
+            source.cache_started_at = now
+            source.cache_remarks = None
 
-        response = self.repository.update(db, sorce)
+        elif status == "Complete":
+            source.cached_at = now
+
+        source.cache_status = status
+
+        response = self.repository.update(db, source)
         if response is None:
             raise ValueError("進捗ステータスの更新に失敗しました。")
         return response

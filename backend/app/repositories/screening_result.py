@@ -7,15 +7,15 @@ class ScreeningResultRepository:
     def get_by_id(
         self,
         db: Session,
-        id: int,
+        id: str,
     ) -> ScreeningResult | None:
         statement = select(ScreeningResult).where(ScreeningResult.id == id)
         return db.scalar(statement)
 
     def crate_or_update(self, db: Session, data: ScreeningResult) -> ScreeningResult:
         source = db.merge(data)
-        db.refresh(data)
         db.commit()
+        db.refresh(source)
         return source
 
     def delete(self, db: Session, data: ScreeningResult) -> None:

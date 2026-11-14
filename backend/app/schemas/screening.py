@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import (
     BaseModel,
@@ -11,7 +12,7 @@ class GroupSearchRequest(BaseModel):
     keyword: str | None = None
 
 
-class GroupResponse(BaseModel):
+class GroupData(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -23,37 +24,37 @@ class GroupResponse(BaseModel):
     updated_at: datetime
 
 
-class GroupListResponse(BaseModel):
-    data: list[GroupResponse]
+class GroupList(BaseModel):
+    data: list[GroupData]
     total: int
 
 
-class ruleResponse(BaseModel):
+class RuleData(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     group_id: int
     metric_code: str
-    params: str
-    points: int | None
+    params: dict[str, Any]
+    points: int
     updated_at: datetime
 
 
-class ruleListResponse(BaseModel):
-    data: list[ruleResponse]
+class RuleList(BaseModel):
+    data: list[RuleData]
 
 
-class resultResponse(BaseModel):
+class ResultData(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
     group_id: int
     rule_id: int
     company_code: str
-    score: int | None
+    score: int
     updated_at: datetime
 
 
-class resultListResponse(BaseModel):
-    data: list[ruleResponse]
+class ResultList(BaseModel):
+    data: list[ResultData]
     total: int

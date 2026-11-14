@@ -12,6 +12,7 @@ STATUS_LITERAL = Literal["Running", "Complete", "Error"] | None
 
 
 class NewParameter(BaseModel):
+    id: int | None = None
     group_id: int
     metric_code: str
     params: dict[str, Any]
@@ -35,6 +36,7 @@ class ScreeningRuleService:
             raise ValueError(result.error or "パラメータが不正です")
 
         sorce = ScreeningRule(
+            id=para.id,
             group_id=para.group_id,
             metric_code=para.metric_code,
             params=para.params,

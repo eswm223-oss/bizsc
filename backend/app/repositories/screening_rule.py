@@ -14,8 +14,8 @@ class ScreeningRuleRepository:
 
     def crate_or_update(self, db: Session, data: ScreeningRule) -> ScreeningRule:
         source = db.merge(data)
-        db.refresh(source)
         db.commit()
+        db.refresh(source)
         return source
 
     def delete(self, db: Session, data: ScreeningRule) -> None:
