@@ -23,10 +23,10 @@ from app.services.jquants.db.cache_manage import (
     ITEM_LITERAL,
     CacheMgmtService,
 )
-from app.services.jquants.db.daily_quote import Daily_quote_service
-from app.services.jquants.db.equities_master import Equities_master_service
-from app.services.jquants.db.financial_summary import Financial_summary_service
-from app.services.jquants.db.valuation import Valuation_service
+from app.services.jquants.db.daily_quote import DailyQuoteService
+from app.services.jquants.db.equities_master import EquitiesMasterService
+from app.services.jquants.db.financial_summary import FinancialSummaryService
+from app.services.jquants.db.valuation import ValuationService
 from sqlalchemy import inspect
 
 # ==================================
@@ -157,7 +157,7 @@ def jquants_cache(mgmtId: str) -> Response:
 # --------------------------------------------------
 def _equities_master_cache(code: str | None = "") -> None:
 
-    service = Equities_master_service(JQuantsListedIssueRepository())
+    service = EquitiesMasterService(JQuantsListedIssueRepository())
 
     # APIから取得
     result = fetch_listed_issues(None, code)
@@ -195,7 +195,7 @@ def _daily_quote_cache(
     toDate: date | None = None,
 ) -> None:
 
-    service = Daily_quote_service(JQuantsDailyQuoteRepository())
+    service = DailyQuoteService(JQuantsDailyQuoteRepository())
     time.sleep(1)
     # APIから取得
     result = fetch_bars_daily(code=code, sDate=sDate, fromDate=fromDate, toDate=toDate)
@@ -236,7 +236,7 @@ def _valuation_cache(
     toDate: date | None = None,
 ) -> None:
 
-    service = Valuation_service(JQuantsValuationRepository())
+    service = ValuationService(JQuantsValuationRepository())
     time.sleep(1)
     # APIから取得
     result = fetch_valuation(code=code, sDate=sDate, fromDate=fromDate, toDate=toDate)
@@ -271,7 +271,7 @@ def _summary_cache(
     toDate: date | None = None,
 ) -> None:
 
-    service = Financial_summary_service(JQuantsFinancialSummaryRepository())
+    service = FinancialSummaryService(JQuantsFinancialSummaryRepository())
     time.sleep(1)
     # APIから取得
     result = fetch_summary(code=code, sDate=sDate, fromDate=fromDate, toDate=toDate)

@@ -4,7 +4,7 @@ from app.schemas.jqunats import SearchRequest
 from sqlalchemy.orm import Session
 
 
-class Daily_quote_service:
+class DailyQuoteService:
     def __init__(self, repository: JQuantsDailyQuoteRepository) -> None:
         self.repository = repository
 

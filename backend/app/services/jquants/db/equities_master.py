@@ -4,7 +4,7 @@ from app.schemas.jqunats import SearchRequest
 from sqlalchemy.orm import Session
 
 
-class Equities_master_service:
+class EquitiesMasterService:
     def __init__(self, repository: JQuantsListedIssueRepository) -> None:
         self.repository = repository
 

@@ -4,7 +4,7 @@ from app.schemas.jqunats import SearchRequest
 from sqlalchemy.orm import Session
 
 
-class Valuation_service:
+class ValuationService:
     def __init__(self, repository: JQuantsValuationRepository) -> None:
         self.repository = repository
 

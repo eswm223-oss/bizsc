@@ -18,17 +18,17 @@ from app.schemas.jqunats import (
     ValuationListResponse,
     ValuationResponse,
 )
-from app.services.jquants.db.daily_quote import Daily_quote_service
-from app.services.jquants.db.equities_master import Equities_master_service
-from app.services.jquants.db.financial_summary import Financial_summary_service
-from app.services.jquants.db.valuation import Valuation_service
+from app.services.jquants.db.daily_quote import DailyQuoteService
+from app.services.jquants.db.equities_master import EquitiesMasterService
+from app.services.jquants.db.financial_summary import FinancialSummaryService
+from app.services.jquants.db.valuation import ValuationService
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-master_service = Equities_master_service(JQuantsListedIssueRepository())
-daily_quote_service = Daily_quote_service(JQuantsDailyQuoteRepository())
-summary_service = Financial_summary_service(JQuantsFinancialSummaryRepository())
-valuation_service = Valuation_service(JQuantsValuationRepository())
+master_service = EquitiesMasterService(JQuantsListedIssueRepository())
+daily_quote_service = DailyQuoteService(JQuantsDailyQuoteRepository())
+summary_service = FinancialSummaryService(JQuantsFinancialSummaryRepository())
+valuation_service = ValuationService(JQuantsValuationRepository())
 
 
 router = APIRouter(

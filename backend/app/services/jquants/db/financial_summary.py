@@ -6,7 +6,7 @@ from app.schemas.jqunats import SearchRequest
 from sqlalchemy.orm import Session
 
 
-class Financial_summary_service:
+class FinancialSummaryService:
     def __init__(self, repository: JQuantsFinancialSummaryRepository) -> None:
         self.repository = repository
 
