@@ -1,7 +1,7 @@
 # BizSC Project Overview
 
-更新日: 2026-11-07  
-確認したGitHubソースのコミット（本更新前）: [`03dd928`](https://github.com/eswm223-oss/bizsc/commit/03dd9288d526cbc814696d5da4912121bd9dd4b5)
+更新日: 2026-11-14  
+確認したGitHubソースのコミット（本更新前）: [`screening_db_fix2`](https://github.com/eswm223-oss/bizsc/commit/c433d418bf92981981b1fa5453c642d40abef966)
 
 ## 1. プロジェクトの目的
 
@@ -109,8 +109,9 @@ APIの202応答は受付完了であってバッチ完了ではない。バッ�
 | J-Quantsデータ保存Model・Repository・Service | 実装済み | 銘柄・株価・Valuation・財務 |
 | J-Quantsキャッシュ実行・管理APIと画面 | 実装済み | BackgroundTasks、cache_mgmt、管理一覧・新規・詳細・削除 |
 | Screeningテーブルモデル・DBマイグレーション | 実装済み・DB適用報告あり | group / rule / result の3テーブル、Alembic `6f4a06038265`。CASCADE動作テストは未確認 |
-| Screening指標計算・キャッシュ実行 | 未実装 | ルールに基づくスコア計算、刷新、状態遷移は今後実装 |
-| Screening条件検索API・画面 | 今後の実装 | キャッシュしたデータを利用 |
+| Screening基本DB処理・条件検証 | 実装済み（静的確認） | 3テーブルのRepository / Service、Registry・Pydantic、JSONB保存、状態更新。Ruleの所属チェックは追加推奨 |
+| Screening指標計算・キャッシュ実行 | 未実装 | ルールに基づくスコア計算、刷新、無効化・バッチとの連携は今後実装 |
+| Screening API・画面 | 一部実装 | Group一覧・登録／名前更新APIは実装済み。Rule・Result API、画面、合計点ランキングは今後 |
 | 日次自動Scheduler / 外部ワーカー | 未導入 | 必要性を見て検討 |
 
 ## 6. Screeningの今後の機能要件
@@ -144,13 +145,15 @@ AND
 
 APIに含まれる指標とBizSC側で計算する派生値を分けて設計する。
 
-### 評価ルール方式（2026-11-07時点でDBモデル作成済み）
+### 評価ルール方式（2026-11-14時点）
 
 - 利用者が評価項目（`metric_code`）、条件（`params`）、加点・減点（`points`、整数）をルールごとに設定する方式。
-- 評価項目ごとに条件の形が異なるため、`params`はPostgreSQLの`JSONB`で保持。指標コードとパラメータ型の対応・検証は今後のアプリケーション実装で扱う。
+- 評価項目ごとに条件の形が異なるため、`params`はPostgreSQLの`JSONB`で保持。指標コードとパラメータ型の対応は`METRICS`で管理し、登録前にPydantic検証を実行。検証済みモデルを`model_dump(mode="json")`でJSONBに保存する。
 - `screening_group`は名称・キャッシュ状態・実行開始日時・最終キャッシュ日時を持ち、`screening_rule`はグループ配下のルールを保持。
 - `screening_result`は**1銘柄 × 1ルール**ごとの計算結果を保持し、`group_id`で対象グループを絞り込み、銘柄別に`SUM(score)`してランキングする。結果はグループ単位で刷新する。
 - グループ削除時はルール・結果を`ON DELETE CASCADE`で削除。結果側の`rule_id`は外部キー制約を設けず、ルール単体の編集・削除を許容する（再計算前の古い結果を最新として扱わない制御は今後実装）。
+- 登録済み評価項目の定義は営業利益率の連続上昇（count）と高値からの株価下落率（lookback・threshold_pct）の2種類。採点ロジック自体は未実装。
+- Group・Rule・Resultの基本DB処理は実装済み。Groupの一覧・登録／名前更新APIを追加。Rule更新は既存IDの存在チェックと所属維持を実装し、異なるgroup_idの明示的拒否は追加推奨。
 - 作成したDBモデル：`backend/app/models/screening_{group,rule,result}.py`。Alembic：`6f4a06038265_add_screening_cascade_delete.py`。利用者から`alembic upgrade head`成功の報告あり。削除連動とスコア集計の実動作は未検証。
 
 ## 7. 今後の開発ロードマップ
@@ -158,9 +161,9 @@ APIに含まれる指標とBizSC側で計算する派生値を分けて設計す
 ### 次の優先候補
 
 1. **保存データの小範囲確認**: 1銘柄・短期間の登録、管理ステータス、欠損値、検索結果を確認。
-2. **Screening指標の仕様確定**: `metric_code`とPydanticパラメータ型の対応、期間・比較基準・計算式、欠損値の扱いを決める。
-3. **Screening Backend**: group/ruleのCRUD、ルール別採点、グループ単位のキャッシュ刷新・状態管理、合計スコア順の一覧APIを実装。
-4. **Screening Frontend**: Mantineを標準UIとして、条件入力、結果一覧、銘柄詳細、チャートなどを小さく段階追加。TanStack Table v9は必要に応じて利用。
+2. **Screening指標の採点仕様**: RegistryとPydanticパラメータ型は実装済み。登録済み指標を中心に期間・比較基準・計算式、欠損値の扱いを決める。
+3. **Screening Backend**: 基本DB処理は実装済み。Ruleの所属チェック、ルール別採点、グループ単位のキャッシュ刷新・無効化、残りの設定APIを段階実装。トランザクション管理は運用方法を検討中。
+4. **Screening Frontend**: Mantineを標準UIとしてグループ・ルール設定を段階追加し、Group一覧のソート・入力制限や登録API形式を画面構成と合わせて調整。結果一覧（合計スコア順・ページング）、銘柄詳細・チャート等は後半フェーズ。TanStack Table v9は必要に応じて利用。
 5. **運用改善**: 必要に応じて進捗画面の自動更新、定期取得、ジョブ中断・復旧を追加。厳密な排他は状況が限定的として現状保留。
 
 ### 意図的に保留する項目
@@ -169,6 +172,7 @@ APIに含まれる指標とBizSC側で計算する派生値を分けて設計す
 - 同一秒に発生するキャッシュ管理ID重複への対策。発生状況が限定的との判断。
 - 上場廃止銘柄の整理方法。今後必要になった段階で判断。
 - EDINETベースの独自財務解析の再開。
+- Screeningのトランザクション運用、Group一覧のソート・page/limit制限、Group登録APIのリクエスト形式（現状クエリ、編集はnameのみを想定）、Result一覧のページングは各フェーズで検討。
 
 ## 8. 開発・ドキュメント運用
 
@@ -189,4 +193,4 @@ docs/project-overview.md    # プロジェクトの目的とロードマップ
 
 ---
 
-**現在地（2026-11-07）**: J-Quantsキャッシュ処理・管理APIと画面、4種のデータ一覧、Mantine移行は実装済み。スクリーニングの3テーブルとAlembic適用まで完了報告あり。次は評価指標Registry・Pydanticによる条件検証、group/rule CRUD、スコア計算・結果キャッシュ刷新・一覧APIの実装。
+**現在地（2026-11-14）**: J-Quantsキャッシュ処理・管理APIと画面、4種のデータ一覧、Mantine移行は実装済み。Screeningの3テーブル・Alembic適用報告、基本DB処理、Registry・Pydantic条件検証、Group一覧・登録／名前更新APIまで実装済み（[`screening_db_fix2`](https://github.com/eswm223-oss/bizsc/commit/c433d418bf92981981b1fa5453c642d40abef966)、静的レビュー）。Rule更新時の所属チェックは追加推奨。次は指標ごとの採点・キャッシュ刷新の運用設計・設定画面連携、結果一覧は後半フェーズ。Screeningのpytest・DB実動作は今回未検証。

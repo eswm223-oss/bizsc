@@ -1,7 +1,7 @@
 # BizSC Architecture
 
-更新日: 2026-11-07  
-確認したGitHubソースのコミット（本更新前）: [`03dd928`](https://github.com/eswm223-oss/bizsc/commit/03dd9288d526cbc814696d5da4912121bd9dd4b5)
+更新日: 2026-11-14  
+確認したGitHubソースのコミット（本更新前）: [`screening_db_fix2`](https://github.com/eswm223-oss/bizsc/commit/c433d418bf92981981b1fa5453c642d40abef966)
 
 ## 1. 目的と読み方
 
@@ -72,9 +72,11 @@ backend/
 │  ├─ api/
 │  │  ├─ cache_batch.py                   # キャッシュ起動API
 │  │  ├─ cache_mgmt.py                    # キャッシュ管理API
-│  │  └─ jquants.py                       # 4種のデータ一覧API
+│  │  ├─ jquants.py                       # 4種のデータ一覧API
+│  │  └─ screening.py                    # Group一覧・登録／名前更新API
 │  ├─ schemas/
-│  │  └─ cache_batch.py                   # CacheBatchRequest
+│  │  ├─ cache_batch.py                   # CacheBatchRequest
+│  │  └─ screening.py                    # Group / Rule / Result のデータ・一覧型
 │  ├─ clients/
 │  │  └─ jquants.py                       # J-Quants HTTP API
 │  ├─ common/
@@ -83,6 +85,7 @@ backend/
 │  │  └─ cmm_string.py
 │  ├─ services/
 │  │  ├─ batches/jquants_sync.py          # run_cache: バッチ入口
+│  │  ├─ screening/db/                   # Group / Rule / Result のService
 │  │  └─ jquants/
 │  │     ├─ cache/jquants_cache.py        # キャッシュ全体と各Dataset処理
 │  │     └─ db/
@@ -96,7 +99,11 @@ backend/
 │  │  ├─ equities_master.py
 │  │  ├─ daily_quote.py
 │  │  ├─ valuation.py
-│  │  └─ financial_summary.py
+│  │  ├─ financial_summary.py
+│  │  ├─ screening_group.py
+│  │  ├─ screening_rule.py
+│  │  └─ screening_result.py
+│  ├─ screening/                        # metric_registry.py / params.py / params_convert.py
 │  ├─ models/
 │  │  ├─ cache_mgmt.py
 │  │  ├─ jquants_listed_issue.py
@@ -271,15 +278,15 @@ docker compose ps
 
 起動APIは`http://localhost:8000/docs`のSwagger UIでも確認できます。管理テーブルと保存結果の確認にはTablePlusを利用します。
 
-## 11. Screeningデータモデル（2026-11-07時点）
+## 11. Screeningデータモデル・DB処理（2026-11-14時点）
 
-GitHubコミット [`screening_table_fix3`](https://github.com/eswm223-oss/bizsc/commit/03dd9288d526cbc814696d5da4912121bd9dd4b5) でモデルとAlembic生成ファイルを確認。**DBテーブル定義とマイグレーションは作成済み**。ルールのCRUD API、指標計算、結果キャッシュの起動・刷新、画面はまだ未実装。
+GitHubコミット [`screening_table_fix3`](https://github.com/eswm223-oss/bizsc/commit/03dd9288d526cbc814696d5da4912121bd9dd4b5) でモデルとAlembic生成ファイルを確認。**DBテーブル定義とマイグレーションは作成済み**。[`screening_db_fix2`](https://github.com/eswm223-oss/bizsc/commit/c433d418bf92981981b1fa5453c642d40abef966) までに3テーブルのRepository / Service、評価項目Registry・パラメータ検証、Group一覧・登録／名前更新APIを追加した。ルール・結果の公開API、指標計算、キャッシュ起動・刷新、画面は未実装。
 
 | テーブル | 主要カラム | 役割 |
 |---|---|---|
 | `screening_group` | `id` (BigInteger PK)、`name`、`cache_status`、`cache_remarks`、`cache_started_at`、`cached_at`、`updated_at` | 評価グループのヘッダーとキャッシュ管理 |
 | `screening_rule` | `id` (BigInteger PK)、`group_id`、`metric_code`、`params` (JSONB)、`points` (Integer)、`updated_at` | 評価項目ごとの条件と加点・減点 |
-| `screening_result` | `id` (String PK, `ruleid-company_code`想定)、`group_id`、`rule_id`、`company_code`、`score` (Integer)、`updated_at` | 1銘柄 × 1ルールの採点キャッシュ |
+| `screening_result` | `id` (String PK, `ruleid-company_code`)、`group_id`、`rule_id`、`company_code`、`score` (Integer)、`updated_at` | 1銘柄 × 1ルールの採点キャッシュ |
 
 ### 関連と削除時の動作
 
@@ -289,18 +296,53 @@ GitHubコミット [`screening_table_fix3`](https://github.com/eswm223-oss/bizsc
 - `screening_result`には`UNIQUE(rule_id, company_code)`。結果取得・刷新用に`(group_id, rule_id, company_code)`と`(group_id, company_code)`のインデックスなどを保持。インデックス削減・性能測定は必要になった段階で行う。
 - `screening_result.group_id` はJOINなしでグループ単位の全銘柄結果を抽出・削除するため意図的に保持している。ルールの`group_id`との一致はDB上の複合外部キーでは保証されない。
 
+### 評価項目Registry・パラメータ処理（実装済み）
+
+- `backend/app/screening/metric_registry.py` の `METRICS` が指標コードをキーに `MetricDefinition(label, params_model)` を管理する。定義内でコードを重複保持しない。
+- `params.py` のPydanticモデルは指標ごとに異なる。現時点の登録指標:
+
+| metric_code | label | params_model / 条件 |
+|---|---|---|
+| `operating_margin_streak` | 営業利益率の連続上昇 | `OperatingMarginStreakParams`: `count: int`（1以上） |
+| `price_drawdown` | 高値からの株価下落率 | `PriceDrawdownParams`: `lookback`（`1y` / `3y` / `5y`）、`threshold_pct: float`（0〜100） |
+
+- どちらのパラメータ型も `ConfigDict(extra="forbid")` を指定。`ParamsConvert.params_validate(params, metric_code)` はRegistryから型を取得し、`model_validate` で検証する。未対応コードはValueError、検証失敗は `ParamsResponse(result=False, error=...)`。 `params_convert(params, model_type)` は指定型への変換を行い、失敗時はValueError。
+- `ScreeningRuleService.create_or_update` は検証結果が成功し、paramsが存在する場合のみ `result.params.model_dump(mode="json")` をJSONBへ保存する（入力時の型変換結果・デフォルト値を反映）。DB取得時のparamsは辞書であり、評価処理で必要な型へ再変換する。
+
+### Repository / Service / API（実装済み範囲）
+
+| 対象 | 現在の実装 |
+|---|---|
+| Group | 取得・検索・件数、登録／更新、削除、状態更新。名前更新は既存モデルを取得してnameのみ変更 |
+| Rule | ID・グループ別取得、登録／更新、削除。新規はID自動採番、更新は既存IDを取得（不存在はValueError）。更新時にgroup_idは変更しない |
+| Result | ID・グループ別取得、件数、登録／更新、削除、Repositoryでグループ別削除。Serviceが `f"{rule_id}-{company_code}"` を主キーとして生成。IDは文字列 |
+| Schema | `GroupData / GroupList`、`RuleData / RuleList`、`ResultData / ResultList`。ORM変換は `from_attributes=True`、paramsは辞書、points・scoreは整数 |
+
+書き込み用Repositoryは現状、単独の操作で `commit()` を実行し、merge系では戻り値に対してcommit後にrefreshする。採点結果の一括刷新に向けたトランザクション境界は運用方法を検討中。
+
+Groupの状態更新は `cache_status` に `Running / Complete / Error / None` を代入する。Runningで `cache_started_at` をUTC現在時刻に更新して備考をクリア、Completeで `cached_at` を更新、Errorでは前回完了時刻を維持する。備考は最大300文字。状態更新メソッドは実装済みだが、キャッシュ実行処理からの呼び出し・ルール変更時の無効化は未実装。
+
+| HTTP | Endpoint | 現在の仕様 |
+|---|---|---|
+| GET | `/screening/group` | keyword（名前部分一致）、page、limit。id降順固定。GroupList（data, total） |
+| POST | `/screening/group/merge` | クエリパラメータname（1〜100文字）、id（省略可、指定時1以上）。id省略で新規、既存idで名前更新、不存在は404。現在は新規・更新ともHTTP 201 |
+
+Routerは `app/main.py` に登録済み。現状はGroupの2エンドポイントのみ。GETのsort_by/sort_orderは受け取るが未使用で、page/limitの範囲検証も未追加。Result Serviceのグループ別取得はRepositoryのデフォルト50件を利用し、ページ指定は未公開。
+
+**残課題:** Rule更新時に指定group_idと既存ルールのgroup_idが異なる場合の明示的拒否は未実装（レビューで追加推奨）。採点時のResultのgroup_id/rule_id整合性、APIエラーへの変換・画面連携は今後対応する。
+
 ### スコア計算・キャッシュの設計方針（未実装）
 
 - `metric_code`に対応する評価条件をPydanticで検証し、`params`は辞書全体を新しい辞書で置換する。SQLAlchemyの通常のJSONBはネストした辞書のインプレース変更を自動検知しないため。
 - 各銘柄×各ルールの`score`を保存し、`WHERE group_id = ... GROUP BY company_code`の`SUM(score)`を合計点として降順表示する。
-- キャッシュの再計算は、結果を用意した後に**対象グループの古い結果削除＋新規結果登録を同一DBトランザクション**で行う方針。成功時にキャッシュ状態・完了日時も更新する。
-- ルール追加・変更・削除時はキャッシュを無効状態にして、刷新前の古い結果を最新として表示しない制御が必要。`cache_status`の状態値、競合処理、0点の結果登録方針は実装時に整理する。
+- キャッシュの再計算は、結果を用意した後に**対象グループの古い結果削除＋新規結果登録を同一DBトランザクション**で行う設計案。現状のRepositoryは操作ごとにcommitするため、そのまま組み合わせると旧結果削除後の失敗で部分更新が残り得る。運用方法と実装方法は検討中。成功時の状態・完了日時の更新も刷新処理と整合させる。
+- ルール追加・変更・削除時はキャッシュを無効状態にして、刷新前の古い結果を最新として表示しない制御が必要。無効化時の`cache_status`の扱い、競合処理、0点の結果登録方針は実装時に整理する。
 
 ## 12. 既存機能と将来の責務
 
 - **User Domain:** CRUD、検索、フィルタ、ソート、ページングを維持。ホーム・ユーザー系はMantine版へ切替済み（サンプル機能）。
 - **EDINET Legacy:** CSV取得可能書類の棚卸し、日付範囲Refresh、DB保存、CLI Batchを実装済み。2026-09-26以降の主データソースはJ-Quantsへ移行。EDINETのコード・テーブルは維持し、財務解析拡張は行わない方針。
-- **Screening:** group / rule / resultのモデル・DBスキーマ作成まで完了。価格変動率、52週高値・安値、高値からの下落率、PER/PBR/配当利回り、業績と株価の乖離などの計算・採点・UIは今後実装。
+- **Screening:** group / rule / resultのモデル・DBスキーマ、基本Repository / Service、Registry・条件検証、Groupの一覧・登録／名前更新APIを実装済み。価格変動率、52週高値・安値、高値からの下落率、PER/PBR/配当利回り、業績と株価の乖離などの計算・採点・UIは今後実装。
 
 ## 13. 現時点で保留する事項・制約
 
