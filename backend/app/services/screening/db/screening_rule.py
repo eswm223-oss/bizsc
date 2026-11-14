@@ -28,21 +28,30 @@ class ScreeningRuleService:
 
     # 登録 ==============
     def create_or_update(self, db: Session, para: NewParameter) -> ScreeningRule:
-        # paramsを検証
+
+        # paramsの検証
         result = ParamsConvert.params_validate(
-            params=para.params, metric_code=para.metric_code
+            params=para.params,
+            metric_code=para.metric_code,
         )
+
         if not result.result or result.params is None:
             raise ValueError(result.error or "パラメータが不正です")
 
-        sorce = ScreeningRule(
-            id=para.id,
-            group_id=para.group_id,
-            metric_code=para.metric_code,
-            params=para.params,
-            points=para.points,
-        )
-        return self.repository.crate_or_update(db, sorce)
+        # 新規登録・更新対象の取得
+        if para.id is None:
+            source = ScreeningRule()
+            source.group_id = para.group_id
+        else:
+            source = self.get_by_id(db, para.id)
+            if source is None:
+                raise ValueError("評価ルールが見つかりません")
+
+        source.metric_code = para.metric_code
+        source.params = result.params.model_dump(mode="json")
+        source.points = para.points
+
+        return self.repository.crate_or_update(db, source)
 
     # 削除 ==============
     def delete(

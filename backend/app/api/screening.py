@@ -9,7 +9,7 @@ from app.schemas.screening import GroupData, GroupList
 from app.services.screening.db.screening_group import ScreeningGroupService
 from app.services.screening.db.screening_result import ScreeningResultService
 from app.services.screening.db.screening_rule import ScreeningRuleService
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 group_service = ScreeningGroupService(ScreeningGroupRepository())
@@ -52,12 +52,12 @@ def get_group(
     status_code=status.HTTP_201_CREATED,
 )
 def marge_group(
-    name: str,
-    id: int | None = None,
+    name: str = Query(min_length=1, max_length=100),
+    id: int | None = Query(default=None, ge=1),
     db: Session = Depends(get_db),
 ) -> GroupData:
     source = ScreeningGroup()
-    if id:
+    if id is not None:
         source = group_service.get_by_id(db, id)
         if source is None:
             raise HTTPException(
